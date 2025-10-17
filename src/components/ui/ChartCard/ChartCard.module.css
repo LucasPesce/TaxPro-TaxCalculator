@@ -1,28 +1,11 @@
-/* --- Sección del Dashboard (Gráficos) --- */
 .chart-card {
-  text-align: center;
+  min-height: 250px; 
 }
-.chartCard > div:last-child {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-}
-.chart-content {
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.chart-placeholder {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  background-color: var(--background-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted-color);
-  border: 5px solid var(--border-color);
+
+.chartCard > div:last-child { /* Seleccionamos el .cardContent que Card renderiza */
+    display: flex;
+    flex-direction: column;
+    align-items: center;    /* Centramos el contenido del gráfico horizontalmente */
+    justify-content: center; /* Centramos el contenido del gráfico verticalmente */
+    flex-grow: 1;
 }

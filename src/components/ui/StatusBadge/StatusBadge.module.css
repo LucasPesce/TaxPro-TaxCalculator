@@ -1,0 +1,37 @@
+.badge {
+  display: inline-block;
+  padding: 4px 12px; /* Un poco más de espacio horizontal */
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  min-width: 80px; 
+  text-align: center;
+  border: 1px solid transparent; /* Añadimos un borde para un mejor contraste en modo oscuro */
+}
+
+/* Variante para "Correcto" */
+.success {
+  background-color: #64b5f6; /* Un verde suave */
+  color: #fefefe;           /* Un verde oscuro para el texto */
+  border-color: #64b5f6;
+}
+
+/* Variante para "Error" */
+.danger {
+  background-color: #db0012; /* Un rojo suave */
+  color: #ffffff;           /* Un rojo oscuro para el texto */
+  border-color: #db0012;
+}
+
+/* Adaptaciones para el tema oscuro */
+[data-theme="dark"] .success {
+  background-color: rgba(33, 150, 243, 0.2);
+  color: #64b5f6; /* Un azul más brillante */
+  border-color: rgba(33, 150, 243, 0.2);
+}
+
+[data-theme="dark"] .danger {
+  background-color: rgba(215, 0, 0, 0.527);
+  color: #fe6966; /* Un rojo más brillante */
+  border-color: rgba(215, 0, 0, 0.527);
+}

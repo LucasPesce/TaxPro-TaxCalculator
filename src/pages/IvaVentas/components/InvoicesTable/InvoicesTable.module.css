@@ -1,0 +1,27 @@
+.tableWrapper {
+  overflow-x: auto; /* Permite el scroll horizontal en pantallas pequeñas */
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 16px 24px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap; /* Evita que el contenido de las celdas se parta */
+}
+
+.table thead {
+  background-color: var(--background-color);
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--text-muted-color);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}

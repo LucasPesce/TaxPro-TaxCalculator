@@ -3,7 +3,7 @@
 /* =============================================== */
 :root {
   --primary-color: #1e2a5a;
-  --accent-color: #ff8000e3;
+  --accent-color: #ff8000dd;
   --background-color: rgb(245, 243, 241);
   --sidebar-bg-color: #ffffff;
   --text-color: #343a40;
@@ -14,11 +14,11 @@
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 88px;
   --header-height: 80px;
-  --btn-highlight: #ff8000cb;
+  --btn-highlight: #ff8000dd;
 }
 
 [data-theme="dark"] {
-  --primary-color: #ff8000ba;
+  --primary-color: #ff8000dd;
   --accent-color: #1e2a5a;
   --background-color: #121832;
   --sidebar-bg-color: #1b2240;
@@ -27,7 +27,7 @@
   --card-bg-color: #1b2240;
   --border-color: #2a3255;
   --theme-btn: rgb(245, 243, 241);
-  --btn-highlight: #ff8000cb;
+  --btn-highlight: #ff8000dd;
 }
 
 html,
