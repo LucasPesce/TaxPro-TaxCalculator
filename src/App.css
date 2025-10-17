@@ -1,0 +1,17 @@
+.app-layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  height: 100vh;
+  transition: grid-template-columns 0.3s ease-in-out;
+  overflow-x: hidden;
+}
+
+.app-layout.sidebar-collapsed {
+  grid-template-columns: var(--sidebar-width-collapsed) 1fr;
+}
+
+/* 3. Contenedor del contenido principl (segunda columna de la rejilla) */
+.main-content {
+  overflow-y: auto;
+  padding: 24px;
+}

@@ -1,0 +1,77 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* Espacio entre el icono y el texto */
+  padding: 10px 20px;
+  border: 1.5px solid transparent; /* Borde transparente por defecto para mantener el tamaño */
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  text-decoration: none; /* En caso de que se use en un link */
+  white-space: nowrap; /* Evita que el texto se parta en dos líneas */
+}
+
+/* 2. Variantes de estilo */
+.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+.primary:hover {
+  filter: brightness(1.15);
+}
+
+.accent {
+  background-color: var(--accent-color);
+  color: white;
+}
+.accent:hover {
+  filter: brightness(1.15);
+}
+
+.secondary {
+  background-color: transparent;
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+.secondary:hover {
+  background-color: var(--background-color);
+  border-color: var(--text-muted-color);
+}
+
+.fileSelect {
+  background-color: transparent;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+.fileSelect:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.icon {
+  background: none;
+  border-color: transparent;
+  padding: 6px; /* Menos padding para botones de icono */
+  color: var(--text-muted-color);
+}
+.icon:hover {
+  color: var(--primary-color);
+  background-color: var(--background-color);
+}
+
+/* 3. Estado deshabilitado: se aplica a CUALQUIER variante */
+.button:disabled {
+  background-color: var(--border-color);
+  border-color: var(--border-color);
+  color: var(--text-muted-color);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Quita el efecto hover en botones deshabilitados */
+.button:disabled:hover {
+    filter: none;
+}

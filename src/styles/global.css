@@ -1,0 +1,45 @@
+/* =============================================== */
+/* ============== 1. VARIABLES Y BASE ============ */
+/* =============================================== */
+:root {
+  --primary-color: #1e2a5a;
+  --accent-color: #ff8000e3;
+  --background-color: rgb(245, 243, 241);
+  --sidebar-bg-color: #ffffff;
+  --text-color: #343a40;
+  --text-muted-color: #8795a0;
+  --card-bg-color: #6c757d;
+  --border-color: #c0ccd9;
+  --theme-btn: #1e2a5a;
+  --sidebar-width: 260px;
+  --sidebar-width-collapsed: 88px;
+  --header-height: 80px;
+  --btn-highlight: #ff8000cb;
+}
+
+[data-theme="dark"] {
+  --primary-color: #ff8000ba;
+  --accent-color: #1e2a5a;
+  --background-color: #121832;
+  --sidebar-bg-color: #1b2240;
+  --text-color: #cde0ff;
+  --text-muted-color: rgb(115, 140, 172);
+  --card-bg-color: #1b2240;
+  --border-color: #2a3255;
+  --theme-btn: rgb(245, 243, 241);
+  --btn-highlight: #ff8000cb;
+}
+
+html,
+body {
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+  margin: 0;
+}

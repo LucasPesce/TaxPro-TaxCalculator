@@ -1,0 +1,25 @@
+.card {
+  background-color: var(--sidebar-bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column; 
+}
+
+.cardHeader {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.25rem; /* Un poco más grande para destacar */
+  font-weight: 600;
+}
+
+/* El contenido principal de la tarjeta */
+.cardContent {
+  padding: 24px;
+  flex-grow: 1; /* Asegura que ocupe el espacio restante */
+}

@@ -1,0 +1,109 @@
+/* src/pages/IvaVentas/components/FiltersSection/FiltersSection.css (CORREGIDO) */
+
+/* --- Estilos para la rejilla de filtros --- */
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 20px;
+    align-items: flex-end; /* Alinea los elementos al final (útil para el botón) */
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text-muted-color);
+}
+
+/* --- Estilos para todos los inputs y selects (se mantienen) --- */
+.filter-group input, 
+.filter-group select {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    width: 100%;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box; /* Asegura que el padding no aumente el tamaño total */
+}
+
+.filter-group input:focus, 
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent);
+}
+
+.filter-group select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 1em;
+    padding-right: 30px;
+}
+
+
+/* --- Estilos para la línea divisoria (se mantienen) --- */
+.section-divider {
+    margin: 24px 0;
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+/* --- Estilos para la sección de importación (se mantienen) --- */
+.import-section {
+    display: flex;
+    width: max-content;
+    margin: 0 auto;
+    align-items: center;
+    gap: 24px;
+}
+
+.hidden-file-input {
+    display: none;
+}
+
+.file-name {
+    color: var(--text-muted-color);
+    font-style: italic;
+}
+
+.btn-file-select {
+    background-color: transparent;
+    border: 1.5px solid var(--primary-color);
+    border-radius: 5px;
+    height: 2rem;
+    padding: 4px 8px;    
+    color: var(--primary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-file-select:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.filters-container {
+    display: flex;           /* 1. Lo convertimos en un contenedor flex. */
+    justify-content: center; /* 2. Centramos su contenido horizontalmente. ¡Esta es la magia! */
+}
+
+/* --- Estilos para la rejilla de filtros --- */
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 20px;
+    align-items: flex-end;
+}

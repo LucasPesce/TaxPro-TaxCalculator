@@ -1,0 +1,21 @@
+/* src/pages/IvaVentas/components/DashboardSection/DashboardSection.module.css */
+
+.dashboardGrid {
+    display: grid;
+    /* Usamos minmax para un diseño más responsive en el futuro */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+}
+
+/* También movemos el estilo del placeholder aquí ya que es específico de este dashboard */
+.chartPlaceholder {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background-color: var(--background-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted-color);
+    border: 5px solid var(--border-color);
+}

@@ -1,0 +1,67 @@
+/* --- Estructura General de la Página --- */
+.iva-ventas-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px; /* Espacio entre secciones */
+}
+
+.page-title {
+    font-size: 2rem;
+    color: var(--text-color);
+    margin-bottom: 0;
+}
+
+/* --- Sección de la Tabla --- */
+.table-container { padding: 0; }
+.table-title {
+    padding: 20px 24px;
+    margin: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.table-wrapper { overflow-x: auto; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 16px 24px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+thead {
+    background-color: var(--background-color);
+}
+th {
+    font-weight: 600;
+    color: var(--text-muted-color);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+/* --- Insignias de Estado (Badges) --- */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    min-width: 80px; 
+    text-align: center;
+}
+.badge-success {
+    background-color: #0088ffe0;
+    color: white;
+}
+.badge-danger {
+    background-color: rgba(215, 0, 0, 0.769);
+    color: white;
+}
+[data-theme="dark"] .badge-success {
+    background-color: #2194f98c;
+    color: white;
+}
+[data-theme="dark"] .badge-danger {
+    background-color: rgba(215, 0, 0, 0.769);
+    color: white;
+}

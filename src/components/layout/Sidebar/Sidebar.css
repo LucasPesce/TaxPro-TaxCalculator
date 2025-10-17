@@ -1,0 +1,204 @@
+/* =========== ESTILOS BASE DEL SIDEBAR ========== */
+.sidebar {
+  grid-column: 1 / 2;
+  height: 100vh;
+  background-color: var(--sidebar-bg-color);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  transition: width 0.3s ease-in-out;
+  position: relative;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border-color);
+  height: var(--header-height);
+  flex-shrink: 0;
+}
+
+.logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-right: 12px;
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  color: var(--primary-color);
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out, width 0.3s ease-in-out;
+}
+
+/* ======= BOTÓN PARA COLAPSAR/EXPANDIR ========== */
+.menu-toggle-btn {
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: -16px;
+  top: 50%;
+  color: var(--text-muted-color);
+  transition: transform 0.3s ease-in-out, background-color 0.2s;
+  z-index: 1100;
+}
+
+.menu-toggle-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.menu-toggle-btn svg {
+  transition: transform 0.3s ease-in-out;
+}
+
+/* =========== MENÚ DE OPCIONES ================== */
+.menu-options {
+  list-style: none;
+  padding: 20px 0;
+  margin: 0;
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.menu-item a {
+  display: flex;
+  align-items: center;
+  padding: 14px 24px;
+  color: var(--text-muted-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s, color 0.2s;
+  white-space: nowrap;
+  position: relative;
+}
+
+.menu-item a:hover {
+  background-color: var(--background-color);
+  color: var(--primary-color);
+}
+
+.menu-item.active a {
+  background-color: var(--background-color);
+  color: var(--primary-color);
+  font-weight: 600;
+  border-right: 3px solid var(--accent-color);
+}
+
+.menu-item a i,
+.menu-item a svg {
+  font-size: 1.2rem;
+  min-width: 40px;
+  text-align: center;
+  margin-right: 12px;
+}
+
+/* =========== ESTADO COLAPSADO ===== */
+.sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .menu-item span {
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+}
+
+.sidebar.collapsed .menu-toggle-btn svg {
+  transform: rotate(180deg);
+}
+.sidebar.collapsed .menu-item a {
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
+}
+
+.sidebar.collapsed .menu-item a i,
+.sidebar.collapsed .menu-item a svg {
+  margin-right: 0;
+}
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0; /* Evita que se encoja */
+  position: relative;
+  z-index: 10;
+}
+/* =========== ACCIONES DEL SIDEBAR (LOGOUT) ================== */
+/* Empujamos esta sección hacia abajo */
+.sidebar-actions {
+  margin-top: auto; /* ¡Este es el truco! Empuja este div hacia el fondo */
+  padding-bottom: 20px;
+}
+
+/* El botón de logout */
+.logout-btn {
+  /* Hacemos que se vea igual que los <a> */
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 14px 24px;
+  color: rgb(255, 0, 0);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit; /* Hereda la fuente del body */
+  font-size: inherit;   /* Hereda el tamaño de fuente */
+  transition: background-color 0.2s, color 0.2s;
+  text-align: left; /* Alineamos el texto a la izquierda */
+}
+[data-theme="dark"] .logout-btn {
+  color: #a50000;
+}
+/* Icono dentro del botón */
+.logout-btn svg {
+  font-size: 1.2rem;
+  min-width: 40px;
+  text-align: center;
+  margin-right: 12px;
+}
+
+/* Efecto hover distintivo para la acción de logout */
+.logout-btn:hover {
+  background-color: rgb(255, 0, 0);; /* Un rojo/naranja muy suave */
+  color: #ffffff; /* Un color rojo para indicar "cuidado" o "acción final" */
+}
+
+/* Estilos para el modo oscuro */
+[data-theme="dark"] .logout-btn:hover {
+  background-color: #a50000;
+  color: #ffffff;
+}
+
+/* Adaptación para el menú colapsado */
+.sidebar.collapsed .logout-btn {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar.collapsed .logout-btn svg {
+  margin-right: 0;
+}
