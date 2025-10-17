@@ -2,9 +2,11 @@ import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil } from '@fortawesome/free-solid-svg-icons';
 import { type Invoice } from '../../mock-data'; // Importamos el TIPO
-import { StatusBadge } from '../../../../../src/components/ui/StatusBadge/StatusBadge';
 import { Card } from '../../../../components/ui/Card/Card';
 import { Button } from '../../../../components/ui/Button/Button';
+import { StatusBadge } from '../../../../components/ui/StatusBadge/StatusBadge';
+import styles from './InvoicesTable.module.css';
+
 
 interface InvoicesTableProps {
     invoices: Invoice[]; // La tabla espera recibir un array de facturas
@@ -12,16 +14,17 @@ interface InvoicesTableProps {
 
 }
 
-// Función auxiliar para formatear números como moneda
 const formatCurrency = (value: number) => {
     return value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit }) => {
     return (
+        // 3. Usamos el componente <Card> como contenedor principal
         <Card title="Registro de Facturas">
-            <div className="table-wrapper">
-                <table>
+            <div className={styles.tableWrapper}>
+                {/* 4. Aplicamos las clases del módulo a la tabla y sus elementos */}
+                <table className={styles.table}>
                     <thead>
                         <tr>
                             <th>Cliente</th>
@@ -38,12 +41,12 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit }
                             <th>Provincia</th>
                             <th>Control IVA</th>
                             <th>Correlatividad</th>
-                            <th></th>
+                            <th></th> {/* Columna para acciones */}
                         </tr>
                     </thead>
                     <tbody>
                         {invoices.map((invoice) => (
-                            <tr key={invoice.id}>
+                           <tr key={invoice.id}>
                                 <td>{invoice.cliente}</td>
                                 <td>{invoice.condIva}</td>
                                 <td>{invoice.docNumero === 0 ? '-' : invoice.docNumero}</td>
@@ -59,7 +62,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit }
                                 <td><StatusBadge status={invoice.controlIva} /></td>
                                 <td><StatusBadge status={invoice.correlatividad} /></td>
                                 <td>
-                                    <Button variant="icon" onClick={() => onEdit(invoice)}>
+                                    <Button variant="icon" onClick={() => onEdit(invoice)} title={`Editar factura ${invoice.nro}`}>
                                         <FontAwesomeIcon icon={faPencil} />
                                     </Button>
                                 </td>
