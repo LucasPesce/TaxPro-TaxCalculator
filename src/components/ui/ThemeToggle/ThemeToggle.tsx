@@ -1,22 +1,20 @@
-// src/components/ui/ThemeToggle/ThemeToggle.tsx
-
+//================ IMPORTACIONES Y ESTILOS ====================
 import { useTheme } from '../../../hooks/useTheme';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import './ThemeToggle.css';
 
+//================ COMPONENTE INTERRUPTOR DE TEMA (ESTILO SWITCH) ====================
 export const ThemeToggle = () => {
-  // 1. Usamos nuestro hook personalizado para obtener el estado y la función.
-  // ¡Así de fácil! Sin pasar props.
   const { theme, toggleTheme } = useTheme();
 
   return (
     <label className="theme-switcher" htmlFor="theme-toggle-input" aria-label="Cambiar tema">
       <FontAwesomeIcon icon={faSun} />
-      <input 
-        type="checkbox" 
+      <input
+        type="checkbox"
         id="theme-toggle-input"
-        className="theme-toggle-input" 
+        className="theme-toggle-input"
         onChange={toggleTheme}
         checked={theme === 'dark'}
       />
@@ -30,7 +28,7 @@ export const ThemeToggle = () => {
   );
 };
 
-// Componente para cuando el menú está colapsado
+//================ COMPONENTE INTERRUPTOR DE TEMA (ESTILO BOTÓN SIMPLE) ====================
 export const CollapsedThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
 

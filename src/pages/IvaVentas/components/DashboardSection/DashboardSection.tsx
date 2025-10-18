@@ -1,12 +1,15 @@
+//================= IMPORTACIONES ==================
 import React from 'react';
 import { ChartCard } from '../../../../components/ui/ChartCard/ChartCard';
 import { type Invoice } from '../../mock-data'; 
 import styles from './DashboardSection.module.css';
 
+//========== DEFINICIÓN DE TIPOS Y PROPS ===========
 interface DashboardSectionProps {
   invoices: Invoice[];
 }
 
+//=============== COMPONENTE PRINCIPAL ===============
 export const DashboardSection: React.FC<DashboardSectionProps> = ({invoices }) => {    
     console.log('Datos para los gráficos:', invoices);
     return (

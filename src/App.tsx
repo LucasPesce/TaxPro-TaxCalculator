@@ -15,7 +15,6 @@ function App() {
     <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>      
       <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
       
-      {/* AHORA <main> SOLO CONTIENE EL <Outlet /> */}
       <main className="main-content">
         <Outlet />
       </main>

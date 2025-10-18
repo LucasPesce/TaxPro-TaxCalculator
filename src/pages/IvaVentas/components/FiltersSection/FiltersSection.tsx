@@ -1,40 +1,82 @@
-// src/pages/IvaVentas/components/FiltersSection/FiltersSection.tsx
-
-import React from 'react';
+//================ IMPORTACIONES ====================
+import React, { useState, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faUpload, faFileImport } from '@fortawesome/free-solid-svg-icons';
-
-// --- CAMBIOS CLAVE ---
-// 1. Importamos nuestros componentes de UI
 import { Card } from '../../../../components/ui/Card/Card';
 import { Button } from '../../../../components/ui/Button/Button';
 import { Input } from '../../../../components/ui/Input/Input';
 import { Select } from '../../../../components/ui/Select/Select';
-// 2. Importamos los estilos del MÓDULO
 import styles from './FiltersSection.module.css';
 
-export const FiltersSection: React.FC = () => {
+//================ DEFINICIÓN DE PROPS ====================
+interface FiltersSectionProps {
+    onFileImport: (file: File) => void;
+}
 
-    const handleImportClick = () => {
-        alert('Botón "Importar Facturas" clickeado!');
+//================ FUNCIÓN AUXILIAR PARA PERÍODOS ====================
+const generatePeriodOptions = () => {
+    const options = [];
+    const now = new Date();
+
+    for (let i = 0; i < 13; i++) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        
+        const label = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(date);
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const value = `${date.getFullYear()}-${month}`;
+        
+        const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
+
+        options.push({ value, label: capitalizedLabel });
+    }
+    return options;
+};
+
+//================ COMPONENTE PRINCIPAL: FiltersSection ====================
+export const FiltersSection: React.FC<FiltersSectionProps> = ({ onFileImport }) => {
+    
+    //================ ESTADO Y VALORES MEMOIZADOS ====================
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [fileName, setFileName] = useState('Ningún archivo seleccionado');
+    const periodOptions = useMemo(() => generatePeriodOptions(), []);
+
+    //================ MANEJADORES DE EVENTOS ====================
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+            setFileName(file.name);
+        } else {
+            setSelectedFile(null);
+            setFileName('Ningún archivo seleccionado');
+        }
     };
 
+    const handleImportClick = () => {
+        if (selectedFile) {
+            onFileImport(selectedFile);
+        } else {
+            alert('Por favor, selecciona un archivo CSV primero.');
+        }
+    };
+
+    //================ RENDERIZADO DEL COMPONENTE ====================
     return (
         <Card title="Filtros y Acciones">
-            {/* --- SECCIÓN 1: BÚSQUEDA Y FILTROS --- */}
             <div className={styles.filtersContainer}>
-                {/* 3. Usamos la clase del módulo para el grid */}
                 <div className={styles.filtersGrid}>
-                    {/* 4. Reemplazamos los divs por nuestros componentes <Input> y <Select> */}
                     <Input
                         label="Empresa"
                         name="empresa"
                         placeholder="Buscar por CUIT o Razón Social..."
                     />
                     <Select label="Periodo a Liquidar" name="periodo">
-                        <option>Seleccionar periodo</option>
-                        <option value="2025-02">Febrero 2025</option>
-                        <option value="2025-01">Enero 2025</option>
+                        <option value="">Seleccionar periodo</option>
+                        {periodOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
                     </Select>
                     <div className={styles.searchButtonWrapper}>
                         <Button variant="primary">
@@ -46,21 +88,25 @@ export const FiltersSection: React.FC = () => {
 
             <hr className={styles.sectionDivider} />
 
-            {/* --- SECCIÓN 2: IMPORTACIÓN DE ARCHIVOS --- */}
             <div className={styles.importSection}>
                 <Button variant="primary" onClick={handleImportClick}>
                     <FontAwesomeIcon icon={faUpload} /> Importar Facturas
                 </Button>
 
-                <label htmlFor="archivo" className={styles.fileInputLabel}>
+                <label htmlFor="csv-importer" className={styles.fileInputLabel}>
                     <FontAwesomeIcon icon={faFileImport} />
                     Seleccionar archivo
                 </label>
 
-                {/* El input oculto sigue siendo el mismo */}
-                <input type="file" id="archivo" className={styles.hiddenFileInput} />
+                <input 
+                    type="file" 
+                    id="csv-importer" 
+                    className={styles.hiddenFileInput}
+                    accept=".csv"
+                    onChange={handleFileChange} 
+                />
 
-                <span className={styles.fileName}>Ningún archivo seleccionado</span>
+                <span className={styles.fileName}>{fileName}</span>
             </div>
         </Card>
     );

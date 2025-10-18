@@ -25,3 +25,30 @@
   font-size: 0.8rem;
   text-transform: uppercase;
 }
+
+.sortableHeader {
+  cursor: pointer;
+  transition: background-color 0.2s;
+  -webkit-user-select: none;
+  user-select: none; /* Evita que el texto se seleccione al hacer doble clic */
+}
+
+.sortableHeader:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.sortIcon {
+  margin-left: 8px;
+  color: var(--text-muted-color);
+}
+
+/* Hacemos el ícono más visible cuando la columna está activa */
+.sortableHeader:has(svg[data-icon="sort-up"]),
+.sortableHeader:has(svg[data-icon="sort-down"]) {
+  color: var(--primary-color);
+}
+
+.sortableHeader:has(svg[data-icon="sort-up"]) .sortIcon,
+.sortableHeader:has(svg[data-icon="sort-down"]) .sortIcon {
+  color: var(--primary-color);
+}
