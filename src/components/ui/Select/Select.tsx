@@ -1,13 +1,14 @@
-// src/components/ui/Select/Select.tsx
-
+//================ IMPORTACIONES ====================
 import React, { type ReactNode } from 'react';
 import styles from './Select.module.css';
 
+//================ INTERFAZ DE PROPS ====================
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
-  children: ReactNode; // 'children' será para las etiquetas <option>
+  children: ReactNode;
 }
 
+//================ COMPONENTE SELECT ====================
 export const Select: React.FC<SelectProps> = ({ label, id, name, children, ...props }) => {
   const selectId = id || name;
 

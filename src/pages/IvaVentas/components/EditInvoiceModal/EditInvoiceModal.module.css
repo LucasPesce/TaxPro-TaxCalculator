@@ -1,5 +1,5 @@
 .formGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Mantenemos el control sobre el layout de 2 columnas */
-  gap: 20px 24px;
+  grid-template-columns: 1fr 1fr ; /* Mantenemos el control sobre el layout de 2 columnas */
+  gap: 12px 12px;
 }

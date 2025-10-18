@@ -1,16 +1,18 @@
+//================= IMPORTACIONES =================
 import React, { type ReactNode } from 'react';
 import styles from './Modal.module.css';
 
+//=========== DEFINICIÓN DE PROPIEDADES ============
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: ReactNode; // El contenido principal del modal (el formulario)
-  footer?: ReactNode; // Un pie de página opcional para los botones
+  children: ReactNode;
+  footer?: ReactNode;
 }
 
+//=============== COMPONENTE MODAL =================
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer }) => {
-  // Si el modal no debe estar abierto, no renderizamos nada.
   if (!isOpen) {
     return null;
   }
@@ -18,6 +20,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.content} onClick={(e) => e.stopPropagation()}>
+        
         <header className={styles.header}>
           <h2 className={styles.title}>{title}</h2>
           <button onClick={onClose} className={styles.closeButton}>&times;</button>
@@ -32,6 +35,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             {footer}
           </footer>
         )}
+        
       </div>
     </div>
   );

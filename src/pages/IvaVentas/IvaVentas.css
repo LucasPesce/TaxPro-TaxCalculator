@@ -1,7 +1,7 @@
 .iva-ventas-page {
     display: flex;
     flex-direction: column;
-    gap: 24px; /* Espacio entre secciones */
+    gap: 24px; 
 }
 
 .page-title {

@@ -1,0 +1,53 @@
+/* ===================== ARCHIVO COMPLETAMENTE NUEVO =========================== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.pagination__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 8px;
+}
+
+.pagination__item,
+.pagination__navButton {
+    background-color: var(--sidebar-bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 8px 12px;
+    min-width: 40px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    font-weight: 500;
+}
+
+.pagination__item:hover,
+.pagination__navButton:hover:not(:disabled) {
+    background-color: var(--background-color);
+    border-color: var(--accent-color);
+}
+
+.pagination__item--active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    font-weight: 700;
+}
+
+.pagination__navButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.pagination__ellipsis {
+    padding: 8px;
+    color: var(--text-muted-color);
+}

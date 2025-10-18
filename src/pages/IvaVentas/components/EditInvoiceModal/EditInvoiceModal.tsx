@@ -1,27 +1,32 @@
-// src/pages/IvaVentas/components/EditInvoiceModal/EditInvoiceModal.tsx
-
+//================= IMPORTACIONES ===================
 import React, { useState, useEffect } from 'react';
 import { type Invoice } from '../../mock-data';
-
-// --- CAMBIOS CLAVE ---
-// 1. Importamos nuestros nuevos componentes de UI
 import { Modal } from '../../../../components/ui/Modal/Modal';
 import { Button } from '../../../../components/ui/Button/Button';
 import { Input } from '../../../../components/ui/Input/Input';
-// 2. Importamos los estilos del MÓDULO (el archivo que renombraste)
 import styles from './EditInvoiceModal.module.css';
 
+//================= TIPOS Y PROPS ===================
 interface EditInvoiceModalProps {
     isOpen: boolean;
     onClose: () => void;
     invoice: Invoice | null;
+    onSave: (invoice: Invoice) => void;
 }
 
-export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onClose, invoice }) => {
+//================= COMPONENTE PRINCIPAL: EditInvoiceModal ===================
+export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onClose, invoice, onSave }) => {
+    
+    //================= ESTADO Y EFECTOS ===================
     const [formData, setFormData] = useState<Partial<Invoice>>({});
 
-    useEffect(() => { if (invoice) { setFormData(invoice); } }, [invoice]);
+    useEffect(() => {
+        if (invoice) {
+            setFormData(invoice);
+        }
+    }, [invoice]);
 
+    //================= MANEJADORES DE EVENTOS ===================
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -29,11 +34,17 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
 
     const handleSaveChanges = (e: React.FormEvent) => {
         e.preventDefault();
-        alert('Guardando cambios... (Lógica no implementada)');
+        if (invoice) {
+            const updatedInvoice = { ...invoice, ...formData };
+            onSave(updatedInvoice);
+        }
         onClose();
     };
 
-    if (!invoice) return null;
+    //================= RENDERIZADO DEL COMPONENTE ===================
+    if (!invoice) {
+        return null;
+    }
 
     return (
         <Modal
@@ -48,7 +59,6 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
             }
         >
             <form onSubmit={handleSaveChanges} className={styles.editForm}>
-                {/* 3. Reemplazamos los divs por nuestro componente <Input> */}
                 <div className={styles.formGrid}>
                     <Input label="Cliente" name="cliente" type="text" value={formData.cliente || ''} onChange={handleChange} />
                     <Input label="Cond. IVA" name="condIva" type="text" value={formData.condIva || ''} onChange={handleChange} />

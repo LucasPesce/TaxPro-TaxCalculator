@@ -1,18 +1,16 @@
-// ============== 1. IMPORTACIONES ===============
+//================= IMPORTACIONES =================
 import React, { type ReactNode } from 'react';
 import styles from './Card.module.css';
 
-// ============== 2. DEFINICIÓN DE PROPS (LA INTERFAZ) ===============
+//=========== DEFINICIÓN DE TIPOS E INTERFACES ===========
 interface CardProps {
-
   children: ReactNode;
   title?: string;
   className?: string;
 }
 
-// ============== 3. EL COMPONENTE ===============
+//============== DEFINICIÓN DEL COMPONENTE ==============
 export const Card: React.FC<CardProps> = ({ children, title, className = '' }) => {
-
   const cardClassName = `${styles.card} ${className}`;
 
   return (
