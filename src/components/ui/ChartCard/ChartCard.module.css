@@ -1,11 +1,11 @@
 .chart-card {
-  min-height: 250px; 
+  min-height: 380px; 
 }
 
-.chartCard > div:last-child { /* Seleccionamos el .cardContent que Card renderiza */
+.chartCard > div:last-child { 
     display: flex;
     flex-direction: column;
-    align-items: center;    /* Centramos el contenido del gráfico horizontalmente */
-    justify-content: center; /* Centramos el contenido del gráfico verticalmente */
+    align-items: center;    
+    justify-content: center; 
     flex-grow: 1;
 }

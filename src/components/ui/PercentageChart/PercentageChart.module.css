@@ -1,0 +1,25 @@
+.chartContainer {
+  position: relative;
+  width: 100%;
+  height: 250px; /* Altura fija para el contenedor del gráfico */
+}
+
+.chartCenterText {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+  pointer-events: none; /* Evita que el texto interfiera con el tooltip del gráfico */
+}
+
+.chartPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted-color);
+  font-style: italic;
+}
