@@ -52,3 +52,9 @@
 .sortableHeader:has(svg[data-icon="sort-down"]) .sortIcon {
   color: var(--primary-color);
 }
+.emptyTableMessage {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-muted-color);
+    font-style: italic;
+}

@@ -1,7 +1,7 @@
 //==================== IMPORTACIONES ====================
 import { useState, useMemo } from "react";
 import Papa from "papaparse";
-import { type Invoice, mockInvoices } from "../mock-data";
+import { type Invoice } from "../mock-data";
 
 //==================== DEFINICION DE TIPOS ====================
 type SortKey = keyof Invoice;
@@ -124,7 +124,7 @@ const validateInvoices = (invoices: Invoice[]): Invoice[] => {
 //==================== CUSTOM HOOK: useInvoicesManager ====================
 export const useInvoicesManager = () => {
   //--- ESTADOS INTERNOS ---
-  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<{
     key: SortKey;
@@ -153,8 +153,7 @@ export const useInvoicesManager = () => {
             const percMun = parseFloat(String(row[9]).replace(",", ".")) || 0;
             const total = parseFloat(String(row[10]).replace(",", ".")) || 0;
 
-            const calculatedMontoGravado =
-              (total - percMun - percIIBB) / 1.21;
+            const calculatedMontoGravado = (total - percMun - percIIBB) / 1.21;
             const difference = Math.abs(montoGravado - calculatedMontoGravado);
             const ivaStatus = difference < 0.01 ? "Correcto" : "Error";
 
@@ -192,12 +191,21 @@ export const useInvoicesManager = () => {
 
   //--- FUNCION: ACTUALIZACION DE FACTURA INDIVIDUAL ---
   const handleUpdateInvoice = (updatedInvoice: Invoice) => {
-    setInvoices((prevInvoices) =>
-      prevInvoices.map((invoice) =>
+    setInvoices((prevInvoices) => {
+      // 1. Creamos una lista temporal con la factura ya actualizada.
+      const invoicesWithUpdate = prevInvoices.map((invoice) =>
         invoice.id === updatedInvoice.id ? updatedInvoice : invoice
-      )
-    );
-    console.log("Factura actualizada:", updatedInvoice);
+      );
+
+      // 2. Pasamos ESA NUEVA LISTA por nuestra función de validación global.
+      //    Esto recalculará la correlatividad para todas las facturas.
+      const revalidatedInvoices = validateInvoices(invoicesWithUpdate);
+
+      // 3. Establecemos el nuevo estado con los datos completamente validados.
+      return revalidatedInvoices;
+    });
+    // ======================= FIN DEL CAMBIO =======================
+    console.log("Factura actualizada y lista re-validada:", updatedInvoice);
   };
 
   //--- FUNCION: MANEJO DEL CAMBIO DE ORDENAMIENTO ---

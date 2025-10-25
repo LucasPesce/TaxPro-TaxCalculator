@@ -37,13 +37,11 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
         }
         return faSortDown;
     };
-
     //================ RENDERIZADO DEL COMPONENTE ====================
     return (
         <Card title="Registro de Facturas">
             <div className={styles.tableWrapper}>
                 <table className={styles.table}>
-                    {/* //================ ENCABEZADO DE LA TABLA ==================== */}
                     <thead>
                         <tr>
                             <th>Cliente</th>
@@ -72,31 +70,39 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
                             <th></th>
                         </tr>
                     </thead>
-                    {/* //================ CUERPO DE LA TABLA (MAPEO DE DATOS) ==================== */}
+                    
                     <tbody>
-                        {invoices.map((invoice) => (
-                            <tr key={invoice.id}>
-                                <td>{invoice.cliente}</td>
-                                <td>{invoice.condIva}</td>
-                                <td>{invoice.docNumero === 0 ? '-' : invoice.docNumero}</td>
-                                <td>{invoice.fecha}</td>
-                                <td>{invoice.doc}</td>
-                                <td>{invoice.nro}</td>
-                                <td>${formatCurrency(invoice.montoGravado)}</td>
-                                <td>${formatCurrency(invoice.iva21)}</td>
-                                <td>${formatCurrency(invoice.percIIBB)}</td>
-                                <td>${formatCurrency(invoice.percMun)}</td>
-                                <td>${formatCurrency(invoice.total)}</td>
-                                <td>{invoice.provincia}</td>
-                                <td><StatusBadge status={invoice.controlIva} /></td>
-                                <td><StatusBadge status={invoice.correlatividad} /></td>
-                                <td>
-                                    <Button variant="icon" onClick={() => onEdit(invoice)} title={`Editar factura ${invoice.nro}`}>
-                                        <FontAwesomeIcon icon={faPencil} />
-                                    </Button>
+                        {invoices.length > 0 ? (
+                            invoices.map((invoice) => (
+                                <tr key={invoice.id}>
+                                    <td>{invoice.cliente}</td>
+                                    <td>{invoice.condIva}</td>
+                                    <td>{invoice.docNumero === 0 ? '-' : invoice.docNumero}</td>
+                                    <td>{invoice.fecha}</td>
+                                    <td>{invoice.doc}</td>
+                                    <td>{invoice.nro}</td>
+                                    <td>${formatCurrency(invoice.montoGravado)}</td>
+                                    <td>${formatCurrency(invoice.iva21)}</td>
+                                    <td>${formatCurrency(invoice.percIIBB)}</td>
+                                    <td>${formatCurrency(invoice.percMun)}</td>
+                                    <td>${formatCurrency(invoice.total)}</td>
+                                    <td>{invoice.provincia}</td>
+                                    <td><StatusBadge status={invoice.controlIva} /></td>
+                                    <td><StatusBadge status={invoice.correlatividad} /></td>
+                                    <td>
+                                        <Button variant="icon" onClick={() => onEdit(invoice)} title={`Editar factura ${invoice.nro}`}>
+                                            <FontAwesomeIcon icon={faPencil} />
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={15} className={styles.emptyTableMessage}>
+                                    Aún no se han cargado datos. Por favor, importe un archivo para comenzar.
                                 </td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>
