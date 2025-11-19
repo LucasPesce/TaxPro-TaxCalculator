@@ -9,3 +9,8 @@
     color: var(--text-color);
     margin-bottom: 0;
 }
+
+.page-actions {
+    display: flex;
+    gap: 12px; 
+}

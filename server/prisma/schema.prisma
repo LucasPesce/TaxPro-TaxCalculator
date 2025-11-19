@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Usaremos SQLite para el desarrollo
+  url      = env("DATABASE_URL")
+}
+
+model Facturas {
+  id              Int     @id @default(autoincrement()) // El ID autoincremental
+  cuitCliente     String
+  nombreEmpresa   String  
+  cliente         String
+  condicionIva    String
+  tipoDocumento   String
+  numeroDocumento Float
+  fecha           String
+  numeroFactura   String 
+  montoGravado    Float
+  iva21           Float
+  percIIBB        Float
+  percMun         Float
+  total           Float
+  provincia       String
+
+  auditoria       Auditoria[] 
+
+}
+
+model Auditoria {
+  idProceso      Int      @id @default(autoincrement())
+  idUsuario      String   @default("01") // Por ahora fijo "01", o "Sistema"
+  idDocumento    Int
+  cuitEmpresa    String
+  nroDocumento   String
+  modificacion   String   // "Importación", "Edición", "Impacto Datos"
+  estadoProceso  String   // "Iniciado", "En Curso", "Finalizado"
+  tipoOperacion  String   // "IVA Ventas", "IVA Compras"
+  fechaRegistro  DateTime @default(now())
+
+  // Relación opcional con Factura (por si borramos una factura, que quede el registro)
+  factura        Facturas? @relation(fields: [idDocumento], references: [id])
+}

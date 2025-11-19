@@ -1,12 +1,53 @@
 //==================== IMPORTACIONES ====================
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Papa from "papaparse";
-import { type Invoice } from "../mock-data";
-
+import { type Invoice } from "../../../types";
 //==================== DEFINICION DE TIPOS ====================
 type SortKey = keyof Invoice;
 type SortDirection = "ascending" | "descending";
 
+//==================== FUNCION AUXILIAR: CALCULO IVA ====================
+// Función para calcular si el IVA es correcto matemáticamente
+const calculateIvaStatus = (
+  total: number,
+  percMun: number,
+  percIIBB: number,
+  montoGravado: number
+): "Correcto" | "Error" => {
+  const calculatedMontoGravado = (total - percMun - percIIBB) / 1.21;
+  const difference = Math.abs(montoGravado - calculatedMontoGravado);
+  return difference < 0.01 ? "Correcto" : "Error";
+};
+
+//==================== FUNCION AUXILIAR: MAPEO DB -> FRONTEND ====================
+// Convierte los nombres de la BD (numeroFactura) a los del Frontend (nro)
+const mapDbToFrontend = (dbInvoice: any): Invoice => {
+  // Calculamos el estado del IVA al vuelo
+  const ivaStatus = calculateIvaStatus(
+    dbInvoice.total,
+    dbInvoice.percMun,
+    dbInvoice.percIIBB,
+    dbInvoice.montoGravado
+  );
+
+  return {
+    id: dbInvoice.id,
+    cliente: dbInvoice.cliente,
+    condIva: dbInvoice.condicionIva as any,
+    doc: dbInvoice.tipoDocumento,
+    docNumero: dbInvoice.numeroDocumento,
+    fecha: dbInvoice.fecha,
+    nro: dbInvoice.numeroFactura,
+    montoGravado: dbInvoice.montoGravado,
+    iva21: dbInvoice.iva21,
+    percIIBB: dbInvoice.percIIBB,
+    percMun: dbInvoice.percMun,
+    total: dbInvoice.total,
+    provincia: dbInvoice.provincia,
+    controlIva: ivaStatus,
+    correlatividad: "Correcto",
+  };
+};
 //==================== FUNCION: VALIDACION DE FACTURAS ====================
 const validateInvoices = (invoices: Invoice[]): Invoice[] => {
   //--- AGRUPACION POR PUNTO DE VENTA Y TIPO DE COMPROBANTE ---
@@ -82,7 +123,6 @@ const validateInvoices = (invoices: Invoice[]): Invoice[] => {
           provincia: "",
           controlIva: "Error",
           correlatividad: "Error",
-          tipoResponsable: "",
         };
         validatedInvoicesWithGaps.push(missingInvoice);
       }
@@ -137,15 +177,41 @@ export const useInvoicesManager = () => {
   //--- CONSTANTES DE CONFIGURACION ---
   const ITEMS_PER_PAGE = 5;
 
+  //--- EFECTO: CARGAR DATOS INICIALES DESDE EL BACKEND ---
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        const response = await fetch("/api/facturas");
+        if (!response.ok) throw new Error("Error de red");
+        const dataFromDb = await response.json();
+
+        // 1. Traducir de DB a Frontend
+        const mappedInvoices = dataFromDb.map(mapDbToFrontend);
+        // 2. Aplicar tu lógica de validación (huecos, errores)
+        const validatedInvoices = validateInvoices(mappedInvoices);
+
+        setInvoices(validatedInvoices);
+      } catch (error) {
+        console.error("Error cargando facturas:", error);
+      }
+    };
+    fetchInvoices();
+  }, []);
+
   //--- FUNCION: IMPORTACION Y PROCESAMIENTO DE ARCHIVO CSV ---
   const handleFileImport = (file: File) => {
+    const cuitEmpresa = prompt("Ingrese CUIT de la empresa:");
+    if (!cuitEmpresa) return;
+    const nombreEmpresa = prompt("Ingrese Nombre de la empresa:");
+    if (!nombreEmpresa) return;
+
     Papa.parse(file, {
       header: false,
       delimiter: ";",
       skipEmptyLines: true,
-      complete: (results) => {
+      complete: async (results) => {
         const parsedInvoices = (results.data as string[][]).map(
-          (row: string[], index: number): Invoice => {
+          (row: string[]): any => {
             const montoGravado =
               parseFloat(String(row[6]).replace(",", ".")) || 0;
             const iva21 = parseFloat(String(row[7]).replace(",", ".")) || 0;
@@ -158,7 +224,6 @@ export const useInvoicesManager = () => {
             const ivaStatus = difference < 0.01 ? "Correcto" : "Error";
 
             return {
-              id: index + 1,
               cliente: row[0] || "",
               condIva: (row[1] as any) || "",
               docNumero: Number(row[2]) || 0,
@@ -173,14 +238,35 @@ export const useInvoicesManager = () => {
               provincia: row[11] || "",
               controlIva: ivaStatus,
               correlatividad: "Correcto",
-              tipoResponsable: "",
             };
           }
         );
 
-        const validatedAndCompletedInvoices = validateInvoices(parsedInvoices);
-        setInvoices(validatedAndCompletedInvoices);
-        setCurrentPage(1);
+        try {
+          // ENVIAMOS LOS DATOS RECIBIDOS POR PARAMETRO
+          const response = await fetch("/api/facturas/lote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              invoices: parsedInvoices,
+              cuitEmpresa: cuitEmpresa, // Usamos el parámetro
+              nombreEmpresa: nombreEmpresa, // Usamos el parámetro
+              tipoOperacion: "IVA Ventas",
+            }),
+          });
+
+          if (!response.ok) throw new Error("Error guardando en servidor");
+
+          const savedDataFromDb = await response.json();
+          const mappedData = savedDataFromDb.map(mapDbToFrontend);
+          const validatedFinalData = validateInvoices(mappedData);
+
+          setInvoices(validatedFinalData);
+          setCurrentPage(1);
+        } catch (error) {
+          console.error("Error guardando importación:", error);
+          alert("Error al guardar los datos en la base de datos.");
+        }
       },
       error: (error: any) => {
         console.error("Error al parsear el CSV:", error);
@@ -190,22 +276,63 @@ export const useInvoicesManager = () => {
   };
 
   //--- FUNCION: ACTUALIZACION DE FACTURA INDIVIDUAL ---
-  const handleUpdateInvoice = (updatedInvoice: Invoice) => {
-    setInvoices((prevInvoices) => {
-      // 1. Creamos una lista temporal con la factura ya actualizada.
-      const invoicesWithUpdate = prevInvoices.map((invoice) =>
-        invoice.id === updatedInvoice.id ? updatedInvoice : invoice
-      );
+  const handleUpdateInvoice = async (updatedInvoice: Invoice) => {
+    try {
+      const response = await fetch(`/api/facturas/${updatedInvoice.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...updatedInvoice,
+          tipoOperacion: "IVA Ventas",
+        }),
+      });
 
-      // 2. Pasamos ESA NUEVA LISTA por nuestra función de validación global.
-      //    Esto recalculará la correlatividad para todas las facturas.
-      const revalidatedInvoices = validateInvoices(invoicesWithUpdate);
+      if (!response.ok) throw new Error("Error al actualizar");
 
-      // 3. Establecemos el nuevo estado con los datos completamente validados.
-      return revalidatedInvoices;
-    });
-    // ======================= FIN DEL CAMBIO =======================
-    console.log("Factura actualizada y lista re-validada:", updatedInvoice);
+      const updatedDataFromDb = await response.json();
+      const mappedUpdatedInvoice = mapDbToFrontend(updatedDataFromDb);
+
+      setInvoices((prevInvoices) => {
+        // 1. Actualizamos la lista local
+        const invoicesWithUpdate = prevInvoices.map((invoice) =>
+          invoice.id === mappedUpdatedInvoice.id
+            ? mappedUpdatedInvoice
+            : invoice
+        );
+        // 2. Re-validamos huecos y consistencia
+        return validateInvoices(invoicesWithUpdate);
+      });
+      console.log("Factura actualizada en BD y validada localmente");
+    } catch (error) {
+      console.error("Error actualizando factura:", error);
+      alert("No se pudo guardar el cambio en el servidor");
+    }
+  };
+
+  // --- FUNCION: BUSCAR FACTURAS EN EL SERVIDOR ---
+  const handleSearch = async (searchTerm: string, period: string) => {
+    try {
+      // Construimos la URL con los parámetros
+      const queryParams = new URLSearchParams();
+      if (searchTerm) queryParams.append("search", searchTerm);
+      if (period) queryParams.append("period", period);
+
+      const response = await fetch(`/api/facturas?${queryParams.toString()}`);
+
+      if (!response.ok) throw new Error("Error al buscar");
+
+      const dataFromDb = await response.json();
+
+      // Procesamos los datos recibidos igual que en la carga inicial
+      const mappedInvoices = dataFromDb.map(mapDbToFrontend);
+      const validatedInvoices = validateInvoices(mappedInvoices);
+
+      setInvoices(validatedInvoices);
+      setCurrentPage(1); // Volver a la primera página de resultados
+    } catch (error) {
+      console.error("Error en la búsqueda:", error);
+      alert("Error al realizar la búsqueda.");
+    }
   };
 
   //--- FUNCION: MANEJO DEL CAMBIO DE ORDENAMIENTO ---
@@ -240,6 +367,46 @@ export const useInvoicesManager = () => {
     return sortedInvoices.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [sortedInvoices, currentPage]);
 
+  //--- CALCULO: VERIFICAR SI HAY ERRORES (Para botón Impactar) ---
+  const hasErrors = useMemo(() => {
+    return invoices.some(
+      (inv) => inv.controlIva === "Error" || inv.correlatividad === "Error"
+    );
+  }, [invoices]);
+
+  //--- FUNCION: IMPACTAR DATOS (Finalizar Proceso) ---
+  const handleImpactData = async (cuitEmpresa: string, periodo: string) => {
+    if (hasErrors) {
+      alert("No se puede impactar: Aún hay facturas con errores.");
+      return;
+    }
+    if (!cuitEmpresa || !periodo) {
+      alert(
+        "Por favor, realice una búsqueda por Empresa y Periodo antes de impactar."
+      );
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/facturas/impactar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cuitEmpresa,
+          periodo,
+          tipoOperacion: "IVA Ventas",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Error al impactar");
+
+      alert("¡Datos impactados correctamente! El proceso ha finalizado.");
+    } catch (error) {
+      console.error(error);
+      alert("Error al impactar los datos.");
+    }
+  };
+
   //--- RETORNO DEL HOOK ---
   return {
     invoices: paginatedInvoices,
@@ -249,8 +416,11 @@ export const useInvoicesManager = () => {
     currentPage,
     ITEMS_PER_PAGE,
     handleFileImport,
+    handleSearch,
     handleSort,
     setCurrentPage,
     handleUpdateInvoice,
+    hasErrors,
+    handleImpactData,
   };
 };

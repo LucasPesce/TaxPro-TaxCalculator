@@ -1,0 +1,14 @@
+/* src/pages/IvaVentas/components/CompanyModal/CompanyModal.module.css */
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.helperText {
+  font-size: 0.85rem;
+  color: var(--text-muted-color);
+  margin-bottom: 16px;
+  margin-top: 0;
+}

@@ -1,7 +1,7 @@
 //================= IMPORTACIONES ==================
 import React, { useMemo } from 'react';
 import { ChartCard } from '../../../../components/ui/ChartCard/ChartCard';
-import { type Invoice } from '../../mock-data';
+import { type Invoice } from '../../../../types';
 import { PercentageChart } from '../../../../components/ui/PercentageChart/PercentageChart';
 import { MultiSegmentChart } from '../../../../components/ui/MultiSegmentChart/MultiSegmentChart';
 import styles from './DashboardSection.module.css';
