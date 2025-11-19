@@ -2,7 +2,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil, faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
-import { type Invoice } from '../../mock-data';
+import { type Invoice } from '../../../../types';
 import { Card } from '../../../../components/ui/Card/Card';
 import { Button } from '../../../../components/ui/Button/Button';
 import { StatusBadge } from '../../../../components/ui/StatusBadge/StatusBadge';
@@ -45,7 +45,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
                     <thead>
                         <tr>
                             <th>Cliente</th>
-                            <th>Cond. IVA</th>
+                            <th>Condición IVA</th>
                             <th>Documento</th>
                             <th>Fecha</th>
                             <th>Comprobante</th>
@@ -55,8 +55,8 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
                             </th>
                             <th>Monto Gravado</th>
                             <th>IVA 21%</th>
-                            <th>Perc. IIBB</th>
-                            <th>Perc. Mun.</th>
+                            <th>Ingresos Brutos</th>
+                            <th>Taza Municipal</th>
                             <th>Total</th>
                             <th>Provincia</th>
                             <th className={styles.sortableHeader} onClick={() => onSort('controlIva')}>

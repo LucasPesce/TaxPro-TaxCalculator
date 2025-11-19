@@ -43,8 +43,8 @@ export const MultiSegmentChart: React.FC<MultiSegmentChartProps> = ({ data, colo
                 <PieChart margin={{ top: 0, right: 0, bottom: 80, left: 0 }}>
                     <Pie
                         data={data}
-                        innerRadius={70}
-                        outerRadius={90}
+                        innerRadius="70%"
+                        outerRadius="90%"
                         fill="#8884d8"
                         paddingAngle={2}
                         dataKey="value"

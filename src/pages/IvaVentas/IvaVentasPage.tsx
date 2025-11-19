@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './IvaVentas.css';
-import { type Invoice } from './mock-data';
+import { type Invoice } from '../../types';
 import { useInvoicesManager } from './hooks/useInvoicesManager';
 import { FiltersSection } from './components/FiltersSection/FiltersSection';
 import { DashboardSection } from './components/DashboardSection/DashboardSection';
@@ -20,9 +20,12 @@ export const IvaVentasPage: React.FC = () => {
         currentPage,
         ITEMS_PER_PAGE,
         handleFileImport,
+        handleSearch,
         handleSort,
         setCurrentPage,
         handleUpdateInvoice,
+        hasErrors,
+        handleImpactData
     } = useInvoicesManager();
 
     //================= ESTADO DEL MODAL DE EDICIÓN =================
@@ -45,28 +48,41 @@ export const IvaVentasPage: React.FC = () => {
         <div className="iva-ventas-page">
             <h1 className="page-title">IVA Ventas</h1>
 
-            <FiltersSection onFileImport={handleFileImport} />
-
+            <FiltersSection onFileImport={handleFileImport} onSearch={handleSearch}
+            />
             <DashboardSection invoices={allInvoices} />
-            
+
             <InvoicesTable
                 invoices={invoices}
                 onEdit={handleEditInvoice}
                 onSort={handleSort}
                 sortConfig={sortConfig}
             />
-            
+
             <Pagination
                 currentPage={currentPage}
                 totalItems={totalInvoices}
                 itemsPerPage={ITEMS_PER_PAGE}
                 onPageChange={page => setCurrentPage(page)}
             />
-            
+
             <div className="page-actions">
-                <Button variant="primary">Impactar datos</Button>
+                <Button
+                    variant="primary"
+                    disabled={hasErrors} // Se deshabilita si hay errores
+                    onClick={() => {
+                        // AQUÍ NECESITAMOS EL CUIT Y PERIODO ACTUAL.
+                        // Como están en FiltersSection encapsulados, por ahora pediremos confirmación simple.
+                        const cuit = prompt("Confirmar CUIT a impactar:");
+                        const periodo = prompt("Confirmar Periodo (YYYY-MM):");
+                        if (cuit && periodo) handleImpactData(cuit, periodo);
+                    }}
+                >
+                    Impactar datos
+                </Button>             
             </div>
-            
+
+
             <EditInvoiceModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}

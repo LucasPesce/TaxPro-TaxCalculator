@@ -1,6 +1,6 @@
 //================= IMPORTACIONES ===================
 import React, { useState, useEffect } from 'react';
-import { type Invoice } from '../../mock-data';
+import { type Invoice } from '../../../../types';
 import { Modal } from '../../../../components/ui/Modal/Modal';
 import { Button } from '../../../../components/ui/Button/Button';
 import { Input } from '../../../../components/ui/Input/Input';
@@ -100,7 +100,6 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
                 doc: formData.doc || '',
                 fecha: formData.fecha || '',
                 provincia: formData.provincia || '',
-                tipoResponsable: formData.tipoResponsable || '',
                 total,
                 percMun,
                 percIIBB,
