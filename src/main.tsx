@@ -6,6 +6,8 @@ import App from './App.tsx'
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { IvaVentasPage } from './pages/IvaVentas/IvaVentasPage';
 import './styles/global.css'
+import { IvaComprasPage } from './pages/IvaCompras/IvaComprasPage'; 
+
 
 const router = createBrowserRouter([
   {
@@ -19,6 +21,10 @@ const router = createBrowserRouter([
       {
         path: "iva-ventas", 
         element: <IvaVentasPage />, 
+      },
+            {
+        path: "iva-compras", // <--- ASEGURAR ESTO
+        element: <IvaComprasPage />, 
       },
     ],
   },

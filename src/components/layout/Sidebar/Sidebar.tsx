@@ -49,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
                     <Link to="/iva-ventas" data-tooltip="IVA Ventas"><i className="fa-solid fa-receipt"></i><span>IVA Ventas</span></Link>
                 </li>
                 <li className="menu-item">
-                    <a href="#" data-tooltip="IVA Compras"><i className="fa-solid fa-file-invoice-dollar"></i><span>IVA Compras</span></a>
+                    <Link to="/iva-compras" data-tooltip="IVA Compras"><i className="fa-solid fa-file-invoice-dollar"></i><span>IVA Compras</span></Link>
                 </li>
                 <li className="menu-item">
                     <a href="#" data-tooltip="IIBB"><i className="fa-solid fa-landmark"></i><span>IIBB</span></a>
