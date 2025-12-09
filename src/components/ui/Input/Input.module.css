@@ -46,3 +46,6 @@
   -moz-appearance: textfield; /* Para Firefox */
   appearance: textfield;
 }
+[data-theme="dark"] .input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}

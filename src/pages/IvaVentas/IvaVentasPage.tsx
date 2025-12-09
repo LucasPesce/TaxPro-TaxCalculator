@@ -34,6 +34,10 @@ export const IvaVentasPage: React.FC = () => {
 
     //================= MANEJADORES DE EVENTOS DEL MODAL =================
     const handleEditInvoice = (invoice: Invoice) => {
+        if (invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto') {
+            alert("Esta factura no presenta errores y no requiere edición.");
+            return; // Detiene la ejecución, no abre el modal
+        }
         setSelectedInvoice(invoice);
         setIsModalOpen(true);
     };
@@ -79,7 +83,7 @@ export const IvaVentasPage: React.FC = () => {
                     }}
                 >
                     Impactar datos
-                </Button>             
+                </Button>
             </div>
 
 
