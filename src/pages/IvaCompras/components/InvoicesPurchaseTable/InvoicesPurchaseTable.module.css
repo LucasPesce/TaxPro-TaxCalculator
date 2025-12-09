@@ -1,0 +1,76 @@
+.tableWrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1800px; /* Forzamos ancho mínimo para que aparezca scroll */
+}
+
+.table th,
+.table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.table thead {
+  background-color: var(--background-color);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--text-muted-color);
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--border-color);
+}
+
+/* Columna de Clasificación (Select) */
+.selectCell {
+    padding: 4px 8px;
+}
+
+.classificationSelect {
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--sidebar-bg-color);
+    color: var(--text-color);
+    font-size: 0.85rem;
+    width: 100%;
+    cursor: pointer;
+}
+
+.classificationSelect:focus {
+    outline: 2px solid var(--primary-color);
+    border-color: transparent;
+}
+.totalCell {
+    font-weight: 800; /* Un poco más negrita */
+    color: var(--text-color);
+}
+
+.sortableHeader {
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.sortableHeader:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.emptyMessage {
+    text-align: center;
+    padding: 32px;
+    font-style: italic;
+    color: var(--text-muted-color);
+}

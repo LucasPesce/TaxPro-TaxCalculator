@@ -1,0 +1,62 @@
+.container {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    height: 100%;
+}
+
+.chartSide {
+    flex: 1;
+    height: 200px;
+    min-width: 200px;
+}
+
+.legendSide {
+    flex: 1.2;
+    font-size: 0.85rem;
+}
+
+.legendTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.legendTable th {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 6px;
+    text-align: left;
+    font-size: 0.75rem;
+}
+
+.legendTable td {
+    padding: 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.totalRow {
+    font-weight: bold;
+    border-top: 2px solid var(--border-color);
+}
+
+.color0 { color: #0088FE; }
+.color1 { color: #00C49F; }
+.color2 { color: #FFBB28; }
+.color3 { color: #FF8042; }
+.color4 { color: #8884d8; }
+
+.legendName {
+    font-weight: bold;
+}
+
+.emptyState {
+    text-align: center;
+    color: var(--text-muted-color);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+}
+

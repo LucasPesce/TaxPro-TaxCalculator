@@ -1,0 +1,31 @@
+.iva-compras-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-title {
+  font-size: 2rem;
+  color: var(--text-color);
+  margin-bottom: 0;
+}
+
+/* Grid del Dashboard de Compras (4 Columnas) */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 24px;
+  align-items: stretch; /* Para que todas las tarjetas tengan la misma altura */
+}
+.page-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+/* Ajuste para pantallas medianas */
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr 2fr;
+  }
+}

@@ -17,3 +17,38 @@ export interface Invoice {
   controlIva: 'Correcto' | 'Error';
   correlatividad: 'Correcto' | 'Error';
 }
+
+export interface PurchaseInvoice {
+  id: number;
+  cuitEmpresa: string;
+  nombreEmpresa: string;
+  
+  proveedor: string;
+  cuitProveedor: string;
+  condicionIva: string;
+  doc: string; // Tipo de documento (Factura A, etc.)
+  nro: string; // Número de factura
+  
+  fechaEmision: string;
+  fechaImputacion: string;
+  
+  provincia: string;
+  jurisdiccion: string;
+  clasificacion: string; // 'Mercadería', 'Servicios', etc.
+  
+  // Importes
+  montoGravado: number;
+  exento: number;
+  percIva: number;
+  percIIBB: number;
+  percMun: number;
+  ganancias: number;
+  iva27: number;
+  iva21: number;
+  iva105: number;
+  otrasRetenciones: number;
+  total: number;
+
+  // Estado (Calculado en frontend)
+  controlIva: 'Correcto' | 'Error';
+}
