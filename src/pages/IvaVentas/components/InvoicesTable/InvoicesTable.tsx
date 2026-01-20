@@ -70,7 +70,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
                             <th></th>
                         </tr>
                     </thead>
-                    
+
                     <tbody>
                         {invoices.length > 0 ? (
                             invoices.map((invoice) => (
@@ -89,11 +89,20 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
                                     <td>{invoice.provincia}</td>
                                     <td><StatusBadge status={invoice.controlIva} /></td>
                                     <td><StatusBadge status={invoice.correlatividad} /></td>
-                                    <td>
-                                        <Button variant="icon" onClick={() => onEdit(invoice)} title={`Editar factura ${invoice.nro}`}>
-                                            <FontAwesomeIcon icon={faPencil} />
-                                        </Button>
-                                    </td>
+                                    <Button
+                                        variant="icon"
+                                        onClick={() => onEdit(invoice)}
+                                        title={
+                                            invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto'
+                                                ? "Esta factura no presenta errores"
+                                                : `Editar factura ${invoice.nro}`
+                                        }
+                                        disabled={
+                                            invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto'
+                                        }
+                                    >
+                                        <FontAwesomeIcon icon={faPencil} />
+                                    </Button>
                                 </tr>
                             ))
                         ) : (
