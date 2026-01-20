@@ -79,7 +79,7 @@ export const IvaVentasPage: React.FC = () => {
                     }}
                 >
                     Impactar datos
-                </Button>             
+                </Button>
             </div>
 
 

@@ -63,9 +63,9 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
                             <th>Perc. IIBB</th>
                             <th>Perc. Mun.</th>
                             <th>Ganancias</th>
-                            <th>IVA 27%</th>
-                            <th>IVA 21%</th>
                             <th>IVA 10.5%</th>
+                            <th>IVA 21%</th>
+                            <th>IVA 27%</th>
                             <th>Otras Ret.</th>
                             <th onClick={() => onSort('total')} className={styles.sortableHeader}>
                                 Total <FontAwesomeIcon icon={getSortIcon('total')} />
@@ -120,7 +120,8 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
                                         <Button
                                             variant="icon"
                                             onClick={() => onEdit(inv)}
-                                            title="Editar comprobante completo"
+                                            title={inv.controlIva === 'Correcto' ? "Sin errores para editar" : "Editar comprobante completo"}
+                                            disabled={inv.controlIva === 'Correcto'}
                                         >
                                             <FontAwesomeIcon icon={faPencil} />
                                         </Button>

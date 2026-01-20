@@ -46,3 +46,12 @@
   -moz-appearance: textfield; /* Para Firefox */
   appearance: textfield;
 }
+[data-theme="dark"] .input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+[data-theme="dark"] .input:read-only,
+[data-theme="dark"] .input:disabled {
+  background-color: #222b4c; 
+  color: var(--text-muted-color); 
+  opacity: 1;
+}

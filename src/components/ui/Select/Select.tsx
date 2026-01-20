@@ -6,10 +6,11 @@ import styles from './Select.module.css';
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   children: ReactNode;
+  readOnly?: boolean;
 }
 
 //================ COMPONENTE SELECT ====================
-export const Select: React.FC<SelectProps> = ({ label, id, name, children, ...props }) => {
+export const Select: React.FC<SelectProps> = ({ label, id, name, children, readOnly, ...props }) => {
   const selectId = id || name;
 
   return (
@@ -21,6 +22,7 @@ export const Select: React.FC<SelectProps> = ({ label, id, name, children, ...pr
         id={selectId}
         name={name}
         className={styles.select}
+        disabled={readOnly}
         {...props}
       >
         {children}
