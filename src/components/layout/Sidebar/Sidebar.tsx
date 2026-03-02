@@ -5,7 +5,7 @@ import logoImg from '../../../assets/images/logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import { ThemeToggle, CollapsedThemeToggle } from '../../ui/ThemeToggle/ThemeToggle';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 //================= DEFINICIÓN DE TIPOS (PROPS) =================
 interface SidebarProps {
@@ -17,11 +17,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
 
     //================= LÓGICA DEL COMPONENTE =================
+    const navigate = useNavigate();
+
     const sidebarClassName = `sidebar ${isCollapsed ? 'collapsed' : ''}`;
 
     const handleLogout = () => {
-        alert('Cerrando sesión...');
-        console.log('Usuario ha cerrado sesión.');
+        navigate('/login', { replace: true });
     };
 
     //================= RENDERIZADO DEL COMPONENTE (JSX) =================
