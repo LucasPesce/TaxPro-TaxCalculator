@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- MODELO DE VENTAS ---
+model FacturaVenta {
+  id              Int    @id @default(autoincrement())
+  cuitCliente     String
+  nombreEmpresa   String
+  cliente         String
+  condicionIva    String
+  tipoDocumento   String
+  numeroDocumento Float
+  fecha           String
+  numeroFactura   String
+  montoGravado    Float
+  iva21           Float
+  percIIBB        Float
+  percMun         Float
+  total           Float
+  provincia       String
+}
+
+// --- MODELO DE COMPRAS ---
+model FacturaCompra {
+  id            Int    @id @default(autoincrement())
+  cuitEmpresa   String
+  nombreEmpresa String
+
+  proveedor     String
+  cuitProveedor String
+  condicionIva  String
+  tipoDocumento String
+  numeroFactura String
+
+  fechaEmision    String
+  fechaImputacion String
+
+  provincia    String
+  jurisdiccion String
+
+  clasificacion String
+
+  montoGravado     Float @default(0)
+  exento           Float @default(0)
+  percIva          Float @default(0)
+  percIIBB         Float @default(0)
+  percMun          Float @default(0)
+  ganancias        Float @default(0)
+  iva27            Float @default(0)
+  iva21            Float @default(0)
+  iva105           Float @default(0)
+  otrasRetenciones Float @default(0)
+  total            Float @default(0)
+}
+
+// --- MODELO DE AUDITORÍA (FACTURAS) ---
+model Auditoria {
+  idProceso     Int      @id @default(autoincrement())
+  idUsuario     String   @default("01")
+  idDocumento   Int
+  cuitEmpresa   String
+  nroDocumento  String
+  modificacion  String
+  estadoProceso String
+  tipoOperacion String
+  fechaRegistro DateTime @default(now())
+}
+
+// --- MODELO DE USUARIOS ---
+model Usuario {
+  id               Int       @id @default(autoincrement())
+  documento        String    @unique
+  nombre           String
+  apellido         String
+  username         String    @unique
+  password         String 
+  rol              String 
+  activo           Boolean   @default(true) 
+  fechaEliminacion DateTime? 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- NUEVO: MODELO DE AUDITORÍA GENERAL / ACTIVIDAD ---
+model RegistroActividad {
+  id               Int      @id @default(autoincrement())
+  fechaHora        DateTime @default(now()) 
+  
+  operadorId       Int
+  operadorDoc      String
+  operadorNombre   String   
+  
+  accion           String   
+  entidadAfectada  String   
+  entidadId        Int      
+  detalles         String?  
+}

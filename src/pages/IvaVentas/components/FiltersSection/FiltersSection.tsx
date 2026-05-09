@@ -11,6 +11,7 @@ import styles from './FiltersSection.module.css';
 //================ DEFINICIÓN DE PROPS ====================
 interface FiltersSectionProps {
     onFileImport: (file: File) => void;
+    onSearch: (searchTerm: string, period: string) => void;
 }
 
 //================ FUNCIÓN AUXILIAR PARA PERÍODOS ====================
@@ -20,25 +21,25 @@ const generatePeriodOptions = () => {
 
     for (let i = 0; i < 13; i++) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        
         const label = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(date);
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const value = `${date.getFullYear()}-${month}`;
-        
         const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
-
         options.push({ value, label: capitalizedLabel });
     }
     return options;
 };
 
 //================ COMPONENTE PRINCIPAL: FiltersSection ====================
-export const FiltersSection: React.FC<FiltersSectionProps> = ({ onFileImport }) => {
-    
+export const FiltersSection: React.FC<FiltersSectionProps> = ({ onFileImport, onSearch }) => {
+
     //================ ESTADO Y VALORES MEMOIZADOS ====================
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState('Ningún archivo seleccionado');
     const periodOptions = useMemo(() => generatePeriodOptions(), []);
+    // ESTADOS LOCALES PARA LOS FILTROS
+    const [searchText, setSearchText] = useState('');
+    const [selectedPeriod, setSelectedPeriod] = useState('');
 
     //================ MANEJADORES DE EVENTOS ====================
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +61,11 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ onFileImport }) 
         }
     };
 
+    // MANEJADOR DE BÚSQUEDA
+    const handleSearchClick = () => {
+        onSearch(searchText, selectedPeriod);
+    };
+
     //================ RENDERIZADO DEL COMPONENTE ====================
     return (
         <Card title="Filtros y Acciones">
@@ -69,9 +75,15 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ onFileImport }) 
                         label="Empresa"
                         name="empresa"
                         placeholder="Buscar por CUIT o Razón Social..."
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
                     />
-                    <Select label="Periodo a Liquidar" name="periodo">
-                        <option value="">Seleccionar periodo</option>
+                    <Select
+                        label="Periodo a Liquidar"
+                        name="periodo"
+                        value={selectedPeriod}
+                        onChange={(e) => setSelectedPeriod(e.target.value)}>
+                        <option value="">Todos los periodos</option>
                         {periodOptions.map(option => (
                             <option key={option.value} value={option.value}>
                                 {option.label}
@@ -79,7 +91,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ onFileImport }) 
                         ))}
                     </Select>
                     <div className={styles.searchButtonWrapper}>
-                        <Button variant="primary">
+                        <Button variant="primary" onClick={handleSearchClick}>
                             <FontAwesomeIcon icon={faSearch} /> Buscar
                         </Button>
                     </div>
@@ -98,12 +110,12 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ onFileImport }) 
                     Seleccionar archivo
                 </label>
 
-                <input 
-                    type="file" 
-                    id="csv-importer" 
+                <input
+                    type="file"
+                    id="csv-importer"
                     className={styles.hiddenFileInput}
                     accept=".csv"
-                    onChange={handleFileChange} 
+                    onChange={handleFileChange}
                 />
 
                 <span className={styles.fileName}>{fileName}</span>

@@ -1,0 +1,18 @@
+.editForm {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 columnas para aprovechar espacio */
+    gap: 16px;
+}
+
+/* Ajuste para pantallas pequeñas */
+@media (max-width: 768px) {
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+}

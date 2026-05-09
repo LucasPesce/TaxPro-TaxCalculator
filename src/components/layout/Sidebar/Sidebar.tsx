@@ -5,7 +5,7 @@ import logoImg from '../../../assets/images/logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import { ThemeToggle, CollapsedThemeToggle } from '../../ui/ThemeToggle/ThemeToggle';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 //================= DEFINICIÓN DE TIPOS (PROPS) =================
 interface SidebarProps {
@@ -17,11 +17,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
 
     //================= LÓGICA DEL COMPONENTE =================
+    const navigate = useNavigate();
+
     const sidebarClassName = `sidebar ${isCollapsed ? 'collapsed' : ''}`;
 
     const handleLogout = () => {
-        alert('Cerrando sesión...');
-        console.log('Usuario ha cerrado sesión.');
+        navigate('/login', { replace: true });
     };
 
     //================= RENDERIZADO DEL COMPONENTE (JSX) =================
@@ -40,16 +41,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
             {/* ----- Menú de Navegación Principal ----- */}
             <ul className="menu-options">
                 <li className="menu-item">
+                    <Link to="/app/Usuarios" data-tooltip="Gestión de Usuarios">
+                        <i className="fa-solid fa-user-shield"></i>
+                        <span>Usuarios</span>
+                    </Link>
+                </li>
+                <li className="menu-item">
                     <a href="#" data-tooltip="Clientes"><i className="fa-solid fa-users"></i><span>Clientes</span></a>
                 </li>
                 <li className="menu-item">
                     <a href="#" data-tooltip="Proveedores"><i className="fa-solid fa-dolly"></i><span>Proveedores</span></a>
                 </li>
                 <li className="menu-item">
-                    <Link to="/iva-ventas" data-tooltip="IVA Ventas"><i className="fa-solid fa-receipt"></i><span>IVA Ventas</span></Link>
+                    <Link to="/app/iva-ventas" data-tooltip="IVA Ventas"><i className="fa-solid fa-receipt"></i><span>IVA Ventas</span></Link>
                 </li>
                 <li className="menu-item">
-                    <a href="#" data-tooltip="IVA Compras"><i className="fa-solid fa-file-invoice-dollar"></i><span>IVA Compras</span></a>
+                    <Link to="/app/iva-compras" data-tooltip="IVA Compras"><i className="fa-solid fa-file-invoice-dollar"></i><span>IVA Compras</span></Link>
                 </li>
                 <li className="menu-item">
                     <a href="#" data-tooltip="IIBB"><i className="fa-solid fa-landmark"></i><span>IIBB</span></a>

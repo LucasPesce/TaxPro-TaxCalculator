@@ -2,7 +2,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil, faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
-import { type Invoice } from '../../mock-data';
+import { type Invoice } from '../../../../types';
 import { Card } from '../../../../components/ui/Card/Card';
 import { Button } from '../../../../components/ui/Button/Button';
 import { StatusBadge } from '../../../../components/ui/StatusBadge/StatusBadge';
@@ -37,17 +37,15 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
         }
         return faSortDown;
     };
-
     //================ RENDERIZADO DEL COMPONENTE ====================
     return (
         <Card title="Registro de Facturas">
             <div className={styles.tableWrapper}>
                 <table className={styles.table}>
-                    {/* //================ ENCABEZADO DE LA TABLA ==================== */}
                     <thead>
                         <tr>
                             <th>Cliente</th>
-                            <th>Cond. IVA</th>
+                            <th>Condición IVA</th>
                             <th>Documento</th>
                             <th>Fecha</th>
                             <th>Comprobante</th>
@@ -57,8 +55,8 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
                             </th>
                             <th>Monto Gravado</th>
                             <th>IVA 21%</th>
-                            <th>Perc. IIBB</th>
-                            <th>Perc. Mun.</th>
+                            <th>Ingresos Brutos</th>
+                            <th>Taza Municipal</th>
                             <th>Total</th>
                             <th>Provincia</th>
                             <th className={styles.sortableHeader} onClick={() => onSort('controlIva')}>
@@ -72,31 +70,48 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
                             <th></th>
                         </tr>
                     </thead>
-                    {/* //================ CUERPO DE LA TABLA (MAPEO DE DATOS) ==================== */}
+
                     <tbody>
-                        {invoices.map((invoice) => (
-                            <tr key={invoice.id}>
-                                <td>{invoice.cliente}</td>
-                                <td>{invoice.condIva}</td>
-                                <td>{invoice.docNumero === 0 ? '-' : invoice.docNumero}</td>
-                                <td>{invoice.fecha}</td>
-                                <td>{invoice.doc}</td>
-                                <td>{invoice.nro}</td>
-                                <td>${formatCurrency(invoice.montoGravado)}</td>
-                                <td>${formatCurrency(invoice.iva21)}</td>
-                                <td>${formatCurrency(invoice.percIIBB)}</td>
-                                <td>${formatCurrency(invoice.percMun)}</td>
-                                <td>${formatCurrency(invoice.total)}</td>
-                                <td>{invoice.provincia}</td>
-                                <td><StatusBadge status={invoice.controlIva} /></td>
-                                <td><StatusBadge status={invoice.correlatividad} /></td>
-                                <td>
-                                    <Button variant="icon" onClick={() => onEdit(invoice)} title={`Editar factura ${invoice.nro}`}>
+                        {invoices.length > 0 ? (
+                            invoices.map((invoice) => (
+                                <tr key={invoice.id}>
+                                    <td>{invoice.cliente}</td>
+                                    <td>{invoice.condIva}</td>
+                                    <td>{invoice.docNumero === 0 ? '-' : invoice.docNumero}</td>
+                                    <td>{invoice.fecha}</td>
+                                    <td>{invoice.doc}</td>
+                                    <td>{invoice.nro}</td>
+                                    <td>${formatCurrency(invoice.montoGravado)}</td>
+                                    <td>${formatCurrency(invoice.iva21)}</td>
+                                    <td>${formatCurrency(invoice.percIIBB)}</td>
+                                    <td>${formatCurrency(invoice.percMun)}</td>
+                                    <td>${formatCurrency(invoice.total)}</td>
+                                    <td>{invoice.provincia}</td>
+                                    <td><StatusBadge status={invoice.controlIva} /></td>
+                                    <td><StatusBadge status={invoice.correlatividad} /></td>
+                                    <Button
+                                        variant="icon"
+                                        onClick={() => onEdit(invoice)}
+                                        title={
+                                            invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto'
+                                                ? "Esta factura no presenta errores"
+                                                : `Editar factura ${invoice.nro}`
+                                        }
+                                        disabled={
+                                            invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto'
+                                        }
+                                    >
                                         <FontAwesomeIcon icon={faPencil} />
                                     </Button>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={15} className={styles.emptyTableMessage}>
+                                    Aún no se han cargado datos. Por favor, importe un archivo para comenzar.
                                 </td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>

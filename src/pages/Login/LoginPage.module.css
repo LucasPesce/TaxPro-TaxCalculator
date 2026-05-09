@@ -1,0 +1,103 @@
+/* src/pages/Login/LoginPage.module.css */
+
+.loginContainer {
+    /* El degradado de fondo: Azul a la izquierda/arriba, Naranja a la derecha/abajo */
+    background: linear-gradient(135deg, #2b58de 0%, #6882f6 40%, #e07e40 80%, #ff8000 100%);
+    min-height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.loginCard {
+    background-color: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    color: #333; /* Texto oscuro base */
+}
+
+.logoSection {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.logo {
+    width: 150px; /* Ajusta según tu logo real */
+    height: auto;
+    margin-bottom: 16px;
+}
+
+.title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1e2a5a; /* Tu color primario */
+    margin: 0 0 8px 0;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    text-align: left; /* Alineamos los inputs a la izquierda */
+    margin-bottom: 24px;
+}
+
+/* Ajuste específico para el botón para que ocupe todo el ancho */
+.submitButton {
+    width: 100%;
+    margin-top: 10px;
+    background-color: #1e2a5a !important; 
+    border-color: #1e2a5a !important;
+    height: 45px;
+}
+
+.submitButton:hover {
+    background-color: #2b3a75 !important;
+}
+.errorMessage {
+    background-color: #ffe5e5;
+    color: #d32f2f;
+    border: 1px solid #ffcdd2;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    animation: fadeIn 0.3s ease-in;
+}
+.forgotPassword {
+    display: block;
+    margin-top: 16px;
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.forgotPassword:hover {
+    color: #1e2a5a;
+    text-decoration: underline;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

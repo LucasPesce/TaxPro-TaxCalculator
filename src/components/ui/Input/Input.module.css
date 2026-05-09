@@ -46,3 +46,45 @@
   -moz-appearance: textfield; /* Para Firefox */
   appearance: textfield;
 }
+[data-theme="dark"] .input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+[data-theme="dark"] .input:read-only,
+[data-theme="dark"] .input:disabled {
+  background-color: #222b4c; 
+  color: var(--text-muted-color); 
+  opacity: 1;
+}
+
+.inputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.eyeButton {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted-color);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.eyeButton:hover {
+  color: var(--primary-color);
+}
+
+/* Si es un input de tipo password, le damos padding derecho para que el texto no se superponga con el icono */
+.inputContainer input[type="password"],
+
+/* Regla más específica: si el input contenedor tiene un eyeButton dentro, el input debe tener padding derecho */
+.inputContainer:has(.eyeButton) .input {
+  padding-right: 40px; 
+}
