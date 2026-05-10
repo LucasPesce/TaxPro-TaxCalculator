@@ -11,37 +11,55 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 // ==================================================================
+// =================== FUNCIÓN DE AUDITORÍA GENERAL =================
+// ==================================================================
+const registrarActividad = async (
+  req: any,
+  accion: string,
+  entidadAfectada: string,
+  entidadId: number,
+  detalles: string,
+) => {
+  const operadorId = parseInt(req.header("X-Operador-Id") || "0", 10);
+  const operadorDoc = req.header("X-Operador-Doc") || "Desconocido";
+  const operadorNombre = req.header("X-Operador-Nombre") || "Sistema";
+
+  await prisma.registroActividad.create({
+    data: {
+      operadorId,
+      operadorDoc,
+      operadorNombre,
+      accion,
+      entidadAfectada,
+      entidadId, // Si es un lote masivo, enviamos 0
+      detalles,
+    },
+  });
+};
+
+// ==================================================================
 // ======================== MÓDULO IVA VENTAS =======================
 // ==================================================================
 
-// --- RUTA: OBTENER TODAS LAS FACTURAS ---
 app.get("/api/facturas", async (req, res) => {
   const { search, period } = req.query;
-
   try {
     const whereClause: any = { AND: [] };
 
-    // 1. Filtro por Texto (Empresa o CUIT)
     if (search) {
       const searchTerm = String(search);
       whereClause.AND.push({
         OR: [
-          { nombreEmpresa: { contains: searchTerm } }, // Busca coincidencias parciales en Nombre
-          { cuitCliente: { contains: searchTerm } }, // Busca coincidencias parciales en CUIT
+          { nombreEmpresa: { contains: searchTerm } },
+          { cuitCliente: { contains: searchTerm } },
         ],
       });
     }
 
-    // 2. Filtro por Periodo (Mes y Año)
-    // El frontend envía formato "YYYY-MM" (ej: "2025-02")
-    // La base de datos tiene formato "DD/MM/YYYY" (ej: "01/02/2025")
     if (period) {
       const [year, month] = String(period).split("-");
-      const searchString = `/${month}/${year}`; // Convertimos a "/02/2025"
-
-      whereClause.AND.push({
-        fecha: { endsWith: searchString }, // Busca fechas que terminen con ese mes y año
-      });
+      const searchString = `/${month}/${year}`;
+      whereClause.AND.push({ fecha: { endsWith: searchString } });
     }
 
     const facturas = await prisma.facturaVenta.findMany({
@@ -56,10 +74,9 @@ app.get("/api/facturas", async (req, res) => {
   }
 });
 
-// --- RUTA: GUARDAR UN LOTE (IMPORTACIÓN) + AUDITORÍA ---
+// --- IMPORTACIÓN LOTES VENTAS (OPTIMIZADO) ---
 app.post("/api/facturas/lote", async (req, res) => {
-  // 1. Recibimos 'tipoOperacion' (IVA Ventas / IVA Compras)
-  const { invoices, cuitEmpresa, nombreEmpresa, tipoOperacion } = req.body;
+  const { invoices, cuitEmpresa, nombreEmpresa } = req.body;
 
   if (!invoices || !Array.isArray(invoices)) {
     return res.status(400).json({ error: "Se esperaba un array de facturas." });
@@ -67,17 +84,15 @@ app.post("/api/facturas/lote", async (req, res) => {
 
   try {
     const cuitActual = String(cuitEmpresa);
-    const operacionActual = tipoOperacion || "IVA Ventas"; // Default por seguridad
+    let facturasInsertadas = 0;
 
     for (const f of invoices) {
-      // Verificar duplicados
       const existe = await prisma.facturaVenta.findFirst({
         where: { cuitCliente: cuitActual, numeroFactura: f.nro },
       });
 
       if (!existe) {
-        // 2. Guardar Factura
-        const nuevaFactura = await prisma.facturaVenta.create({
+        await prisma.facturaVenta.create({
           data: {
             cuitCliente: cuitActual,
             nombreEmpresa: String(nombreEmpresa),
@@ -95,23 +110,20 @@ app.post("/api/facturas/lote", async (req, res) => {
             provincia: f.provincia,
           },
         });
-
-        // 3. REGISTRAR AUDITORÍA (Estado: Iniciado)
-        await prisma.auditoria.create({
-          data: {
-            idUsuario: "01", // Usuario por defecto
-            idDocumento: nuevaFactura.id,
-            cuitEmpresa: cuitActual,
-            nroDocumento: f.nro,
-            modificacion: "Importación Inicial",
-            estadoProceso: "Iniciado",
-            tipoOperacion: operacionActual,
-          },
-        });
+        facturasInsertadas++;
       }
     }
 
-    // --- GENERACIÓN AUTOMÁTICA DE FACTURAS FALTANTES ---
+    // 🚨 AUDITORÍA SINTETIZADA: Solo 1 registro por la importación completa
+    if (facturasInsertadas > 0) {
+      await registrarActividad(
+        req,
+        "IMPORTACIÓN MASIVA",
+        "Lote Ventas",
+        0,
+        `Se importaron ${facturasInsertadas} facturas de venta para el CUIT ${cuitActual}`,
+      );
+    }
 
     const facturasAnalisis = await prisma.facturaVenta.findMany({
       where: { cuitCliente: cuitActual },
@@ -121,18 +133,15 @@ app.post("/api/facturas/lote", async (req, res) => {
     const gruposSeries: Record<string, typeof facturasAnalisis> = {};
 
     facturasAnalisis.forEach((f) => {
-      // VALIDACIÓN ESTRICTA: Si el número no tiene guión (ej: "0005-0000001"), LO IGNORAMOS.
-      // Esto evita que números basura como "13" o "01" rompan la lógica.
       if (!f.numeroFactura || !f.numeroFactura.includes("-")) return;
-
       const [ptVenta] = f.numeroFactura.split("-");
       const tipoDoc = f.tipoDocumento ? f.tipoDocumento.trim() : "Desconocido";
-
       const claveGrupo = `${ptVenta}|${tipoDoc}`;
-
       if (!gruposSeries[claveGrupo]) gruposSeries[claveGrupo] = [];
       gruposSeries[claveGrupo].push(f);
     });
+
+    let huecosGenerados = 0;
 
     for (const clave in gruposSeries) {
       const facturasDelGrupo = gruposSeries[clave];
@@ -152,7 +161,6 @@ app.post("/api/facturas/lote", async (req, res) => {
 
           if (siguiente > actual + 1) {
             for (let j = actual + 1; j < siguiente; j++) {
-              // Formato estricto: 0005-00000044
               const numeroFaltanteStr = String(j).padStart(8, "0");
               const nroCompleto = `${ptVenta}-${numeroFaltanteStr}`;
 
@@ -161,17 +169,16 @@ app.post("/api/facturas/lote", async (req, res) => {
               });
 
               if (!existeHueco) {
-                // A. CREAR FACTURA EN BD
-                const facturaGenerada = await prisma.facturaVenta.create({
+                await prisma.facturaVenta.create({
                   data: {
                     cuitCliente: cuitActual,
                     nombreEmpresa: String(nombreEmpresa),
                     cliente: "--- FACTURA FALTANTE ---",
                     condicionIva: "Consumidor Final",
                     tipoDocumento: tipoDocSerie,
-                    numeroDocumento: 0, // CUIT del cliente 0 porque no existe
+                    numeroDocumento: 0,
                     fecha: "",
-                    numeroFactura: nroCompleto, // <--- AQUÍ SE GUARDA EL NÚMERO
+                    numeroFactura: nroCompleto,
                     montoGravado: 0,
                     iva21: 0,
                     percIIBB: 0,
@@ -180,21 +187,7 @@ app.post("/api/facturas/lote", async (req, res) => {
                     provincia: "Sin definir",
                   },
                 });
-
-                // B. AUDITORÍA
-                await prisma.auditoria.create({
-                  data: {
-                    idUsuario: "Sistema",
-                    idDocumento: facturaGenerada.id,
-                    cuitEmpresa: cuitActual,
-                    nroDocumento: nroCompleto, // <--- AQUÍ SE GUARDA EN AUDITORÍA
-                    modificacion: "Registro Autogenerado",
-                    estadoProceso: "Iniciado",
-                    tipoOperacion: req.body.tipoOperacion || "IVA Ventas",
-                  },
-                });
-
-                console.log(`Hueco rellenado: ${nroCompleto}`);
+                huecosGenerados++;
               }
             }
           }
@@ -202,7 +195,17 @@ app.post("/api/facturas/lote", async (req, res) => {
       }
     }
 
-    // Devolver datos filtrados por CUIT
+    // 🚨 AUDITORÍA SINTETIZADA DE HUECOS
+    if (huecosGenerados > 0) {
+      await registrarActividad(
+        req,
+        "AUTO-CREACIÓN",
+        "Lote Ventas",
+        0,
+        `El sistema generó ${huecosGenerados} registros faltantes por correlatividad para el CUIT ${cuitActual}`,
+      );
+    }
+
     const facturasDelCliente = await prisma.facturaVenta.findMany({
       where: { cuitCliente: cuitActual },
       orderBy: { numeroFactura: "asc" },
@@ -214,12 +217,9 @@ app.post("/api/facturas/lote", async (req, res) => {
   }
 });
 
-// --- RUTA: ACTUALIZAR FACTURA + AUDITORÍA ---
 app.put("/api/facturas/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const datos = req.body;
-  // Recibimos tipoOperacion en el body al editar
-  const operacionActual = datos.tipoOperacion || "IVA Ventas";
 
   try {
     const facturaActualizada = await prisma.facturaVenta.update({
@@ -239,18 +239,13 @@ app.put("/api/facturas/:id", async (req, res) => {
       },
     });
 
-    // REGISTRAR AUDITORÍA (Estado: En Curso)
-    await prisma.auditoria.create({
-      data: {
-        idUsuario: "01",
-        idDocumento: id,
-        cuitEmpresa: facturaActualizada.cuitCliente,
-        nroDocumento: facturaActualizada.numeroFactura,
-        modificacion: "Modificación de campos",
-        estadoProceso: "En Curso",
-        tipoOperacion: operacionActual,
-      },
-    });
+    await registrarActividad(
+      req,
+      "EDICIÓN",
+      "FacturaVenta",
+      id,
+      `Se editó la factura de venta: ${facturaActualizada.numeroFactura} (CUIT: ${facturaActualizada.cuitCliente})`,
+    );
 
     res.json(facturaActualizada);
   } catch (error) {
@@ -259,63 +254,10 @@ app.put("/api/facturas/:id", async (req, res) => {
   }
 });
 
-// --- RUTA: IMPACTAR DATOS (CIERRE DE PROCESO) ---
-app.post("/api/facturas/impactar", async (req, res) => {
-  const { cuitEmpresa, periodo, tipoOperacion } = req.body;
-  // periodo viene como "2025-02"
-
-  try {
-    // 1. Buscamos todas las facturas de ese periodo y empresa
-    const [year, month] = String(periodo).split("-");
-    const searchString = `/${month}/${year}`;
-
-    const facturasAImpactar = await prisma.facturaVenta.findMany({
-      where: {
-        cuitCliente: String(cuitEmpresa),
-        fecha: { endsWith: searchString },
-      },
-    });
-
-    if (facturasAImpactar.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No hay facturas para impactar en este periodo." });
-    }
-
-    // 2. Creamos registro de auditoría "Finalizado" para CADA factura
-    // (Opcionalmente, podrías crear un solo registro "Master", pero tu prompt pedía por documento)
-
-    // Usamos un Promise.all para hacerlo rápido en paralelo
-    await Promise.all(
-      facturasAImpactar.map((f) =>
-        prisma.auditoria.create({
-          data: {
-            idUsuario: "01",
-            idDocumento: f.id,
-            cuitEmpresa: f.cuitCliente,
-            nroDocumento: f.numeroFactura,
-            modificacion: "Impacto de Datos (Cierre)",
-            estadoProceso: "Finalizado",
-            tipoOperacion: tipoOperacion || "IVA Ventas",
-          },
-        })
-      )
-    );
-
-    res.json({
-      message: "Proceso impactado correctamente",
-      cantidad: facturasAImpactar.length,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error al impactar datos" });
-  }
-});
-
 // ==================================================================
 // ======================== MÓDULO IVA COMPRAS ======================
 // ==================================================================
-// --- OBTENER COMPRAS ---
+
 app.get("/api/compras", async (req, res) => {
   const { search, period } = req.query;
   try {
@@ -346,29 +288,28 @@ app.get("/api/compras", async (req, res) => {
   }
 });
 
-// --- IMPORTAR COMPRAS ---
+// --- IMPORTACIÓN LOTES COMPRAS (OPTIMIZADO) ---
 app.post("/api/compras/lote", async (req, res) => {
-  const { invoices, cuitEmpresa, nombreEmpresa, tipoOperacion } = req.body;
+  const { invoices, cuitEmpresa, nombreEmpresa } = req.body;
 
   if (!invoices || !Array.isArray(invoices))
     return res.status(400).json({ error: "Datos inválidos" });
 
   try {
     const cuitActual = String(cuitEmpresa);
+    let comprasInsertadas = 0;
 
     for (const f of invoices) {
-      // En compras, chequeamos duplicado por CUIT Proveedor + Nro Factura
-      // (Una misma empresa puede recibir facturas numero 0001 de distintos proveedores)
       const existe = await prisma.facturaCompra.findFirst({
         where: {
           cuitEmpresa: cuitActual,
-          cuitProveedor: f.cuitProveedor, // Dato crucial en compras
+          cuitProveedor: f.cuitProveedor,
           numeroFactura: f.nro,
         },
       });
 
       if (!existe) {
-        const nueva = await prisma.facturaCompra.create({
+        await prisma.facturaCompra.create({
           data: {
             cuitEmpresa: cuitActual,
             nombreEmpresa: String(nombreEmpresa),
@@ -382,8 +323,6 @@ app.post("/api/compras/lote", async (req, res) => {
             provincia: f.provincia,
             jurisdiccion: f.jurisdiccion,
             clasificacion: f.clasificacion || "Sin Clasificar",
-
-            // Importes
             montoGravado: f.montoGravado || 0,
             exento: f.exento || 0,
             percIva: f.percIva || 0,
@@ -397,19 +336,19 @@ app.post("/api/compras/lote", async (req, res) => {
             total: f.total || 0,
           },
         });
-
-        // Auditoría
-        await prisma.auditoria.create({
-          data: {
-            idDocumento: nueva.id,
-            cuitEmpresa: cuitActual,
-            nroDocumento: f.nro,
-            modificacion: "Importación Compra",
-            estadoProceso: "En Curso",
-            tipoOperacion: "IVA Compras",
-          },
-        });
+        comprasInsertadas++;
       }
+    }
+
+    // 🚨 AUDITORÍA SINTETIZADA
+    if (comprasInsertadas > 0) {
+      await registrarActividad(
+        req,
+        "IMPORTACIÓN MASIVA",
+        "Lote Compras",
+        0,
+        `Se importaron ${comprasInsertadas} facturas de compra para el CUIT ${cuitActual}`,
+      );
     }
 
     const comprasDelCliente = await prisma.facturaCompra.findMany({
@@ -442,7 +381,6 @@ app.post("/api/compras", async (req, res) => {
         provincia: f.provincia,
         jurisdiccion: f.jurisdiccion,
         clasificacion: f.clasificacion,
-
         montoGravado: parseFloat(f.montoGravado) || 0,
         exento: parseFloat(f.exento) || 0,
         percIva: parseFloat(f.percIva) || 0,
@@ -457,17 +395,13 @@ app.post("/api/compras", async (req, res) => {
       },
     });
 
-    await prisma.auditoria.create({
-      data: {
-        idUsuario: "01",
-        idDocumento: nueva.id,
-        cuitEmpresa: cuitActual,
-        nroDocumento: f.nro,
-        modificacion: "Alta Manual", // Aquí sí es Alta Manual
-        estadoProceso: "En Curso",
-        tipoOperacion: "IVA Compras",
-      },
-    });
+    await registrarActividad(
+      req,
+      "CREACIÓN",
+      "FacturaCompra",
+      nueva.id,
+      `Alta manual de compra: ${f.nro} (CUIT Empresa: ${cuitActual})`,
+    );
 
     res.json(nueva);
   } catch (error) {
@@ -476,13 +410,11 @@ app.post("/api/compras", async (req, res) => {
   }
 });
 
-// --- ACTUALIZAR COMPRA ---
 app.put("/api/compras/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const datos = req.body;
 
   try {
-    // 1. Actualizamos la factura con TODOS los datos editables
     const actualizada = await prisma.facturaCompra.update({
       where: { id },
       data: {
@@ -492,8 +424,6 @@ app.put("/api/compras/:id", async (req, res) => {
         tipoDocumento: datos.doc,
         numeroFactura: datos.nro,
         clasificacion: datos.clasificacion,
-        
-        // Importes (asegurando que sean números)
         montoGravado: parseFloat(datos.montoGravado) || 0,
         exento: parseFloat(datos.exento) || 0,
         percIva: parseFloat(datos.percIva) || 0,
@@ -508,18 +438,13 @@ app.put("/api/compras/:id", async (req, res) => {
       },
     });
 
-    // 2. ¡AQUÍ ESTABA EL FALTANTE! -> REGISTRAR EN AUDITORÍA
-    await prisma.auditoria.create({
-      data: {
-        idUsuario: "01",
-        idDocumento: id,
-        cuitEmpresa: actualizada.cuitEmpresa, // Tomamos el CUIT de la factura actualizada
-        nroDocumento: actualizada.numeroFactura,
-        modificacion: "Modificación de campos (Compras)",
-        estadoProceso: "En Curso",
-        tipoOperacion: "IVA Compras",
-      },
-    });
+    await registrarActividad(
+      req,
+      "EDICIÓN",
+      "FacturaCompra",
+      id,
+      `Se editó la compra: ${actualizada.numeroFactura} (CUIT Empresa: ${actualizada.cuitEmpresa})`,
+    );
 
     res.json(actualizada);
   } catch (error) {
@@ -528,26 +453,25 @@ app.put("/api/compras/:id", async (req, res) => {
   }
 });
 
+// --- RUTA COMPARTIDA: IMPACTAR (COMPRAS Y VENTAS) (OPTIMIZADO) ---
 app.post("/api/facturas/impactar", async (req, res) => {
   const { cuitEmpresa, periodo, tipoOperacion } = req.body;
-  // tipoOperacion viene como "IVA Ventas" o "IVA Compras"
 
   try {
     const [year, month] = String(periodo).split("-");
-    const searchString = `/${month}/${year}`; // Filtro de fecha (ej: /02/2025)
+    const searchString = `/${month}/${year}`;
 
     let facturasAImpactar: any[] = [];
+    const esCompra = tipoOperacion === "IVA Compras";
 
-    // 1. Buscar en la tabla correcta
-    if (tipoOperacion === "IVA Compras") {
+    if (esCompra) {
       facturasAImpactar = await prisma.facturaCompra.findMany({
         where: {
           cuitEmpresa: String(cuitEmpresa),
-          fechaImputacion: { endsWith: searchString }, // En compras usamos fechaImputacion
+          fechaImputacion: { endsWith: searchString },
         },
       });
     } else {
-      // Asumimos IVA Ventas por defecto
       facturasAImpactar = await prisma.facturaVenta.findMany({
         where: {
           cuitCliente: String(cuitEmpresa),
@@ -562,21 +486,13 @@ app.post("/api/facturas/impactar", async (req, res) => {
       });
     }
 
-    // 2. Generar Auditoría masiva
-    await Promise.all(
-      facturasAImpactar.map((f) =>
-        prisma.auditoria.create({
-          data: {
-            idUsuario: "01",
-            idDocumento: f.id,
-            cuitEmpresa: String(cuitEmpresa),
-            nroDocumento: f.numeroFactura,
-            modificacion: "Impacto de Datos (Cierre)",
-            estadoProceso: "Finalizado",
-            tipoOperacion: tipoOperacion,
-          },
-        })
-      )
+    // 🚨 AUDITORÍA SINTETIZADA: 1 solo registro por el cierre del periodo
+    await registrarActividad(
+      req,
+      "IMPACTO (CIERRE)",
+      esCompra ? "Lote Compras" : "Lote Ventas",
+      0,
+      `Se cerró e impactó el periodo ${periodo} de ${esCompra ? "Compras" : "Ventas"} para el CUIT ${cuitEmpresa}. Total registros: ${facturasAImpactar.length}`,
     );
 
     res.json({
@@ -590,7 +506,303 @@ app.post("/api/facturas/impactar", async (req, res) => {
 });
 
 // ==================================================================
-// ======================== LISTEN PUERTO ======================
+// ======================== MÓDULO USUARIOS =========================
+// ==================================================================
+
+app.get("/api/usuarios", async (req, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      orderBy: { apellido: "asc" },
+    });
+
+    const usuariosSeguros = usuarios.map((u) => ({
+      ...u,
+      password: "••••••••",
+    }));
+
+    res.json(usuariosSeguros);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al obtener usuarios" });
+  }
+});
+
+app.post("/api/usuarios", async (req, res) => {
+  const { documento, nombre, apellido, username, password, rol } = req.body;
+  try {
+    const nuevoUsuario = await prisma.usuario.create({
+      data: {
+        documento,
+        nombre,
+        apellido,
+        username,
+        password,
+        rol,
+        activo: true,
+      },
+    });
+
+    await registrarActividad(
+      req,
+      "CREACIÓN",
+      "Usuario",
+      nuevoUsuario.id,
+      `Se creó el usuario: ${username} con rol ${rol}`,
+    );
+
+    res.status(201).json(nuevoUsuario);
+  } catch (error: any) {
+    if (error.code === "P2002") {
+      return res.status(400).json({
+        error: "El nombre de usuario o el Documento ya están registrados.",
+      });
+    }
+    res.status(500).json({ error: "Error al crear usuario" });
+  }
+});
+
+app.put("/api/usuarios/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { documento, nombre, apellido, username, rol, password } = req.body;
+
+  try {
+    const dataToUpdate: any = { documento, nombre, apellido, username, rol };
+    if (password && password !== "••••••••") {
+      dataToUpdate.password = password;
+    }
+
+    const usuarioActualizado = await prisma.usuario.update({
+      where: { id },
+      data: dataToUpdate,
+    });
+
+    await registrarActividad(
+      req,
+      "EDICIÓN",
+      "Usuario",
+      id,
+      `Se editaron los datos del usuario: ${username}`,
+    );
+
+    res.json(usuarioActualizado);
+  } catch (error: any) {
+    if (error.code === "P2002")
+      return res
+        .status(400)
+        .json({ error: "El username o Documento ya existe." });
+    res.status(500).json({ error: "Error al actualizar usuario" });
+  }
+});
+
+app.delete("/api/usuarios/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const usuarioInhabilitado = await prisma.usuario.update({
+      where: { id },
+      data: {
+        activo: false,
+        fechaEliminacion: new Date(),
+      },
+    });
+
+    await registrarActividad(
+      req,
+      "INHABILITACIÓN",
+      "Usuario",
+      id,
+      `Usuario ${usuarioInhabilitado.username} inhabilitado y movido a papelera`,
+    );
+
+    res.json({
+      message: "Usuario inhabilitado temporalmente",
+      usuario: usuarioInhabilitado,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Error al inhabilitar usuario" });
+  }
+});
+
+app.patch("/api/usuarios/:id/restaurar", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const usuarioRestaurado = await prisma.usuario.update({
+      where: { id },
+      data: {
+        activo: true,
+        fechaEliminacion: null,
+      },
+    });
+
+    await registrarActividad(
+      req,
+      "RESTAURACIÓN",
+      "Usuario",
+      id,
+      `Usuario ${usuarioRestaurado.username} recuperado de la papelera`,
+    );
+
+    res.json({ message: "Usuario restaurado", usuario: usuarioRestaurado });
+  } catch (error) {
+    res.status(500).json({ error: "Error al restaurar usuario" });
+  }
+});
+
+app.delete("/api/usuarios/limpieza-definitiva", async (req, res) => {
+  try {
+    const hace30Dias = new Date();
+    hace30Dias.setDate(hace30Dias.getDate() - 30);
+
+    const eliminados = await prisma.usuario.deleteMany({
+      where: {
+        activo: false,
+        fechaEliminacion: {
+          lte: hace30Dias,
+        },
+      },
+    });
+    res.json({
+      message: `Se eliminaron permanentemente ${eliminados.count} usuarios.`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Error en la limpieza definitiva" });
+  }
+});
+// --- ELIMINAR USUARIO DEFINITIVAMENTE (FORZADO) ---
+app.delete("/api/usuarios/:id/forzar", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    // 1. Buscamos al usuario para obtener sus datos antes de borrarlo (para la auditoría)
+    const usuarioABorrar = await prisma.usuario.findUnique({ where: { id } });
+
+    if (!usuarioABorrar) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // 2. Lo borramos definitivamente de la base de datos
+    await prisma.usuario.delete({
+      where: { id },
+    });
+
+    // 3. Registramos en auditoría que fue borrado del sistema
+    await registrarActividad(
+      req,
+      "ELIMINACIÓN DEFINITIVA",
+      "Usuario",
+      id,
+      `Se eliminó permanentemente del sistema al usuario: ${usuarioABorrar.username} (DNI: ${usuarioABorrar.documento})`,
+    );
+
+    res.json({ message: "Usuario eliminado permanentemente del sistema." });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "Error al eliminar usuario permanentemente" });
+  }
+});
+// ==================================================================
+// ======================== LOGIN REAL ==============================
+// ==================================================================
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { username: username },
+    });
+
+    if (!usuario) {
+      return res
+        .status(401)
+        .json({ error: "Usuario o contraseña incorrectos." });
+    }
+
+    if (!usuario.activo) {
+      return res
+        .status(403)
+        .json({ error: "Este usuario se encuentra inhabilitado." });
+    }
+
+    if (usuario.password !== password) {
+      return res
+        .status(401)
+        .json({ error: "Usuario o contraseña incorrectos." });
+    }
+
+    const { password: _, ...usuarioSinPassword } = usuario;
+
+    // El req no tiene los headers todavía porque es el login, así que pasamos los datos manuales:
+    await prisma.registroActividad.create({
+      data: {
+        operadorId: usuario.id,
+        operadorDoc: usuario.documento,
+        operadorNombre: `${usuario.apellido}, ${usuario.nombre}`,
+        accion: "LOGIN",
+        entidadAfectada: "Sistema",
+        entidadId: usuario.id,
+        detalles: `Inicio de sesión exitoso desde el sistema`,
+      },
+    });
+
+    res.status(200).json({
+      message: "Login exitoso",
+      usuario: usuarioSinPassword,
+    });
+  } catch (error) {
+    console.error("Error en login:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
+// ==================================================================
+// ======================== MÓDULO AUDITORÍA ========================
+// ==================================================================
+app.get("/api/auditoria", async (req, res) => {
+  const { fecha, operador, modulo } = req.query;
+
+  try {
+    const whereClause: any = { AND: [] };
+
+    // 1. Filtro por Fecha Exacta
+    if (fecha) {
+      // Como fechaHora guarda horas y minutos, buscamos entre las 00:00 y las 23:59 de ese día
+      const startOfDay = new Date(`${fecha}T00:00:00.000Z`);
+      const endOfDay = new Date(`${fecha}T23:59:59.999Z`);
+      whereClause.AND.push({
+        fechaHora: { gte: startOfDay, lte: endOfDay },
+      });
+    }
+
+    // 2. Filtro por Operador (Busca en DNI o Nombre)
+    if (operador) {
+      whereClause.AND.push({
+        OR: [
+          { operadorNombre: { contains: String(operador) } },
+          { operadorDoc: { contains: String(operador) } },
+        ],
+      });
+    }
+
+    // 3. Filtro por Módulo / Entidad Afectada
+    if (modulo) {
+      whereClause.AND.push({
+        entidadAfectada: { contains: String(modulo) },
+      });
+    }
+
+    const registros = await prisma.registroActividad.findMany({
+      where: whereClause.AND.length > 0 ? whereClause : undefined,
+      orderBy: { fechaHora: "desc" },
+    });
+
+    res.json(registros);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al obtener la auditoría" });
+  }
+});
+
+// ==================================================================
+// ======================== LISTEN PUERTO ===========================
 // ==================================================================
 app.listen(PORT, () => {
   console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);

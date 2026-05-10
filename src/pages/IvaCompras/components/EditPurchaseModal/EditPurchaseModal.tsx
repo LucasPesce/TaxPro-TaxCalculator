@@ -186,7 +186,9 @@ export const EditPurchaseModal: React.FC<EditPurchaseModalProps> = ({
                         {OPCIONES_CLASIFICACION.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </Select>
                     {/* Importes */}
+
                     <hr style={{ gridColumn: '1 / -1', border: '0', borderTop: '1px solid #eee', width: '100%' }} />
+                    
                     <Input label="Gravado" name="montoGravado" type="number" value={formData.montoGravado} onChange={handleGravadoChange} />
                     <Input label="Exento" name="exento" type="number" value={formData.exento} onChange={handleChange} />
                     <Select label="Alícuota IVA" name="ivaRate" value={selectedIvaRate} onChange={handleRateChange}>

@@ -13,7 +13,7 @@ const calculateIvaStatus = (
   total: number,
   percMun: number,
   percIIBB: number,
-  montoGravado: number
+  montoGravado: number,
 ): "Correcto" | "Error" => {
   const calculatedMontoGravado = (total - percMun - percIIBB) / 1.21;
   const difference = Math.abs(montoGravado - calculatedMontoGravado);
@@ -28,7 +28,7 @@ const mapDbToFrontend = (dbInvoice: any): Invoice => {
     dbInvoice.total,
     dbInvoice.percMun,
     dbInvoice.percIIBB,
-    dbInvoice.montoGravado
+    dbInvoice.montoGravado,
   );
 
   return {
@@ -67,7 +67,7 @@ const validateInvoices = (invoices: Invoice[]): Invoice[] => {
     } else {
       console.warn(
         "Factura descartada por datos insuficientes para agrupar:",
-        invoice
+        invoice,
       );
     }
   });
@@ -88,7 +88,7 @@ const validateInvoices = (invoices: Invoice[]): Invoice[] => {
 
     const firstNum = parseInt(sortedGroup[0].nro.split("-")[1]);
     const lastNum = parseInt(
-      sortedGroup[sortedGroup.length - 1].nro.split("-")[1]
+      sortedGroup[sortedGroup.length - 1].nro.split("-")[1],
     );
 
     let invoicePointer = 0;
@@ -105,8 +105,8 @@ const validateInvoices = (invoices: Invoice[]): Invoice[] => {
       } else {
         console.warn(
           `¡Hueco detectado! Falta ${tipoComprobante} nro ${puntoDeVenta}-${String(
-            i
-          ).padStart(8, "0")}`
+            i,
+          ).padStart(8, "0")}`,
         );
         const missingInvoice: Invoice = {
           id: -i * Math.random(),
@@ -156,7 +156,7 @@ const validateInvoices = (invoices: Invoice[]): Invoice[] => {
 
   //--- LIMPIEZA Y ORDENAMIENTO FINAL ---
   const filteredFinalInvoices = finalInvoices.filter(
-    (invoice) => invoice.nro !== "0000-00000000"
+    (invoice) => invoice.nro !== "0000-00000000",
   );
 
   return filteredFinalInvoices.sort((a, b) => a.nro.localeCompare(b.nro));
@@ -199,6 +199,19 @@ export const useInvoicesManager = () => {
     fetchInvoices();
   }, []);
 
+  const getHeaders = () => {
+    const userStr = localStorage.getItem("usuarioActual");
+    const user = userStr ? JSON.parse(userStr) : null;
+    return {
+      "Content-Type": "application/json",
+      "X-Operador-Id": user?.id?.toString() || "0",
+      "X-Operador-Doc": user?.documento || "Desconocido",
+      "X-Operador-Nombre": user
+        ? `${user.apellido}, ${user.nombre}`
+        : "Sistema",
+    };
+  };
+
   //--- FUNCION: IMPORTACION Y PROCESAMIENTO DE ARCHIVO CSV ---
   const handleFileImport = (file: File) => {
     const cuitEmpresa = prompt("Ingrese CUIT de la empresa:");
@@ -240,14 +253,14 @@ export const useInvoicesManager = () => {
               controlIva: ivaStatus,
               correlatividad: "Correcto",
             };
-          }
+          },
         );
 
         try {
           // ENVIAMOS LOS DATOS RECIBIDOS POR PARAMETRO
           const response = await fetch("/api/facturas/lote", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getHeaders(),
             body: JSON.stringify({
               invoices: parsedInvoices,
               cuitEmpresa: cuitEmpresa, // Usamos el parámetro
@@ -281,7 +294,7 @@ export const useInvoicesManager = () => {
     try {
       const response = await fetch(`/api/facturas/${updatedInvoice.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({
           ...updatedInvoice,
           tipoOperacion: "IVA Ventas",
@@ -298,7 +311,7 @@ export const useInvoicesManager = () => {
         const invoicesWithUpdate = prevInvoices.map((invoice) =>
           invoice.id === mappedUpdatedInvoice.id
             ? mappedUpdatedInvoice
-            : invoice
+            : invoice,
         );
         // 2. Re-validamos huecos y consistencia
         return validateInvoices(invoicesWithUpdate);
@@ -371,7 +384,7 @@ export const useInvoicesManager = () => {
   //--- CALCULO: VERIFICAR SI HAY ERRORES (Para botón Impactar) ---
   const hasErrors = useMemo(() => {
     return invoices.some(
-      (inv) => inv.controlIva === "Error" || inv.correlatividad === "Error"
+      (inv) => inv.controlIva === "Error" || inv.correlatividad === "Error",
     );
   }, [invoices]);
 
@@ -383,7 +396,7 @@ export const useInvoicesManager = () => {
     }
     if (!cuitEmpresa || !periodo) {
       alert(
-        "Por favor, realice una búsqueda por Empresa y Periodo antes de impactar."
+        "Por favor, realice una búsqueda por Empresa y Periodo antes de impactar.",
       );
       return;
     }
@@ -391,7 +404,7 @@ export const useInvoicesManager = () => {
     try {
       const response = await fetch("/api/facturas/impactar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({
           cuitEmpresa,
           periodo,
