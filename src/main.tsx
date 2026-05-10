@@ -6,35 +6,45 @@ import App from './App.tsx'
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { IvaVentasPage } from './pages/IvaVentas/IvaVentasPage';
 import './styles/global.css'
-import { IvaComprasPage } from './pages/IvaCompras/IvaComprasPage'; 
-import { LoginPage } from './pages/Login/LoginPage'; 
+import { IvaComprasPage } from './pages/IvaCompras/IvaComprasPage';
+import { UsuariosPage } from './pages/Usuarios/UsuariosPage';
+import { LoginPage } from './pages/Login/LoginPage';
+import { AuditoriaPage } from './pages/Auditoria/AuditoriaPage.tsx';
 
 const router = createBrowserRouter([
   {
     path: "/login",
-    element: <LoginPage />, 
+    element: <LoginPage />,
   },
   {
     path: "/app",
-    element: <App />, 
+    element: <App />,
     children: [
       {
-        index: true, 
+        index: true,
         element: <DashboardPage />,
       },
       {
-        path: "iva-ventas", 
-        element: <IvaVentasPage />, 
+        path: "auditoria",
+        element: <AuditoriaPage />,
       },
-            {
-        path: "iva-compras", 
-        element: <IvaComprasPage />, 
+      {
+        path: "usuarios",
+        element: <UsuariosPage />,
+      },
+      {
+        path: "iva-ventas",
+        element: <IvaVentasPage />,
+      },
+      {
+        path: "iva-compras",
+        element: <IvaComprasPage />,
       },
     ],
   },
   {
-    path: "/", 
-    element: <Navigate to="/login" replace />, 
+    path: "/",
+    element: <Navigate to="/login" replace />,
   }
 ]);
 
