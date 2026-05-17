@@ -1,8 +1,7 @@
-// src/pages/Login/LoginPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './LoginPage.module.css';
-import logoImg from '../../assets/images/marca.png'; // Asegúrate de que la ruta sea correcta
+import logoImg from '../../assets/images/marca.png'; 
 import { Input } from '../../components/ui/Input/Input';
 import { Button } from '../../components/ui/Button/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,13 +10,13 @@ import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
 
-    // Estados para los campos
+    // Estados del formulario
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
 
-
-    const handleLogin = (e: React.FormEvent) => {
+    // Función unificada para manejar el login
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null); // Limpiamos errores previos
 
@@ -27,18 +26,60 @@ export const LoginPage: React.FC = () => {
             return;
         }
 
-        // 2. Simulación de validación contra base de datos (Hardcoded por ahora)
-        // Usuario: administrador | Pass: 1234
+        // =========================================================================
+        // 🚨 ACCESO PROVISORIO HARDCODED (PUERTA TRASERA PARA DESARROLLO) 🚨
+        // =========================================================================
         if (username === 'administrador' && password === '1234') {
-            console.log("Login exitoso");
-            // Aquí en el futuro guardaríamos el token o datos de sesión
-            navigate('/app');
-        } else {
-            // 3. Error de credenciales incorrectas
-            setError("Usuario o contraseña incorrectos.");
+            console.log("Login exitoso mediante acceso provisorio (Hardcoded)");
+            
+            // Simulamos los datos del usuario administrador
+            const adminUser = {
+                id: 0,
+                nombre: "Administrador",
+                apellido: "Sistema",
+                username: "administrador",
+                rol: "Administrador",
+                email: "admin@taxpro.com"
+            };
+            
+            localStorage.setItem('usuarioActual', JSON.stringify(adminUser));
+            navigate('/app', { replace: true });
+            return; // Detenemos la ejecución aquí para no ir a la BD
+        }
+        // =========================================================================
+
+        // 2. Si no es el administrador hardcoded, vamos a la BASE DE DATOS REAL
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            // 3. Si el servidor dice OK (código 200)
+            if (response.ok) {
+                console.log("Login exitoso contra BD. Bienvenido:", data.usuario.nombre);
+                
+                // Guardamos los datos del usuario
+                localStorage.setItem('usuarioActual', JSON.stringify(data.usuario));
+                
+                // Redirigimos a la app
+                navigate('/app', { replace: true });
+            } else {
+                // 4. Error de credenciales en BD o usuario inhabilitado
+                setError(data.error || "Ocurrió un error al iniciar sesión.");
+            }
+        } catch (err) {
+            console.error("Error de conexión:", err);
+            setError("Error de conexión con el servidor. Verifica que el backend esté encendido.");
         }
     };
 
+    // Limpia el error apenas el usuario empieza a escribir
     const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>, value: string) => {
         setter(value);
         if (error) setError(null);
@@ -46,9 +87,32 @@ export const LoginPage: React.FC = () => {
 
     const handleForgotPassword = (e: React.MouseEvent) => {
         e.preventDefault();
-        // A futuro: Redirigir a pantalla de recuperación o abrir modal
-        alert("Funcionalidad en desarrollo: Se enviará un correo al email asociado al DNI del usuario.");
+        alert("Funcionalidad en desarrollo: Se enviará un correo al email asociado al usuario.");
     };
+    
+
+    // =========================================================================
+        // ACCESO PROVISORIO HARDCODED (PUERTA TRASERA PARA DESARROLLO) 🚨
+        // =========================================================================
+        if (username === 'administrador' && password === '1234') {
+            console.log("Login exitoso mediante acceso provisorio (Hardcoded)");
+            
+            // Simulamos los datos del usuario administrador (CON TODOS LOS PERMISOS)
+            const adminUser = {
+                id: 0,
+                documento: "00000000", // <-- Agregamos DNI falso para que no falle la auditoría
+                nombre: "Administrador",
+                apellido: "Sistema",
+                username: "administrador",
+                rol: "Administrador General", // <--- EL CAMBIO CLAVE (Antes decía solo "Administrador")
+            };
+            
+            localStorage.setItem('usuarioActual', JSON.stringify(adminUser));
+            navigate('/app', { replace: true });
+            return; 
+        }
+        // =========================================================================
+
 
     return (
         <div className={styles.loginContainer}>
@@ -62,7 +126,7 @@ export const LoginPage: React.FC = () => {
 
                 <form onSubmit={handleLogin} className={styles.form}>
                     
-                    {/* Mensaje de Error INLINE (Arriba de los inputs) */}
+                    {/* Mensaje de Error INLINE */}
                     {error && (
                         <div className={styles.errorMessage}>
                             <FontAwesomeIcon icon={faExclamationCircle} />
@@ -75,8 +139,6 @@ export const LoginPage: React.FC = () => {
                         placeholder="Ingresa tu usuario"
                         value={username}
                         onChange={(e) => handleInputChange(setUsername, e.target.value)}
-                        // Si hay error, podríamos poner el borde rojo al input, 
-                        // pero por ahora el mensaje superior es suficiente.
                     />
                     
                     <Input 

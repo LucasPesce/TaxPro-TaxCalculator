@@ -52,3 +52,15 @@ export interface PurchaseInvoice {
   // Estado (Calculado en frontend)
   controlIva: 'Correcto' | 'Error';
 }
+
+export interface Usuario {
+  id: number;
+  documento: string;
+  nombre: string;
+  apellido: string;
+  username: string;
+  rol: 'Asistente Contable' | 'Supervisor' | 'Gerente' | 'Administrador' | 'Sin Permisos' | string;
+  password?: string; // Opcional porque el backend la enmascara
+  activo: boolean;
+  fechaEliminacion?: string | null;
+}

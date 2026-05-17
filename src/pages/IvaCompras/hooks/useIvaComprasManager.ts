@@ -67,6 +67,17 @@ const parseMoney = (val: string): number => {
   return parseFloat(clean) || 0;
 };
 
+const getHeaders = () => {
+  const userStr = localStorage.getItem("usuarioActual");
+  const user = userStr ? JSON.parse(userStr) : null;
+  return {
+    "Content-Type": "application/json",
+    "X-Operador-Id": user?.id?.toString() || "0",
+    "X-Operador-Doc": user?.documento || "Desconocido",
+    "X-Operador-Nombre": user ? `${user.apellido}, ${user.nombre}` : "Sistema",
+  };
+};
+
 export const useIvaComprasManager = () => {
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -186,7 +197,7 @@ export const useIvaComprasManager = () => {
         try {
           const response = await fetch("/api/compras/lote", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getHeaders(),
             body: JSON.stringify({
               invoices: parsedInvoices,
               cuitEmpresa,
@@ -228,7 +239,7 @@ export const useIvaComprasManager = () => {
     try {
       const res = await fetch(`/api/compras/${updated.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({
           ...updated,
           tipoOperacion: "IVA Compras",
@@ -238,7 +249,7 @@ export const useIvaComprasManager = () => {
         const data = await res.json();
         const mapped = mapDbToFrontend(data);
         setInvoices((prev) =>
-          prev.map((inv) => (inv.id === mapped.id ? mapped : inv))
+          prev.map((inv) => (inv.id === mapped.id ? mapped : inv)),
         );
       }
     } catch (e) {
@@ -285,7 +296,7 @@ export const useIvaComprasManager = () => {
     }
     if (!cuitEmpresa || !periodo) {
       alert(
-        "Por favor, realice una búsqueda por Empresa y Periodo antes de impactar."
+        "Por favor, realice una búsqueda por Empresa y Periodo antes de impactar.",
       );
       return;
     }
@@ -294,7 +305,7 @@ export const useIvaComprasManager = () => {
       // Reutilizamos el mismo endpoint 'impactar' del backend (es genérico)
       const response = await fetch("/api/facturas/impactar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({
           cuitEmpresa,
           periodo,
@@ -315,7 +326,7 @@ export const useIvaComprasManager = () => {
     try {
       const res = await fetch("/api/compras", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({
           ...newInvoice,
           tipoOperacion: "IVA Compras",
