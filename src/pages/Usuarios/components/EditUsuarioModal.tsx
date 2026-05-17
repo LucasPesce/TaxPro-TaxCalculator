@@ -12,7 +12,13 @@ interface EditUsuarioModalProps {
     onSave: (id: number | null, data: Partial<Usuario>) => void;
 }
 
-const ROLES = ["Asistente Contable", "Supervisor", "Gerente", "Administrador", "Sin Permisos"];
+const ROLES = [
+    "Asistente Contable", 
+    "Supervisor", 
+    "Gerente", 
+    "Administrador de Usuarios", 
+    "Administrador General"
+];
 
 export const EditUsuarioModal: React.FC<EditUsuarioModalProps> = ({ isOpen, onClose, usuario, onSave }) => {
     const [formData, setFormData] = useState<Partial<Usuario>>({});

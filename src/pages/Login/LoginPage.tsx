@@ -90,6 +90,30 @@ export const LoginPage: React.FC = () => {
         alert("Funcionalidad en desarrollo: Se enviará un correo al email asociado al usuario.");
     };
     
+
+    // =========================================================================
+        // ACCESO PROVISORIO HARDCODED (PUERTA TRASERA PARA DESARROLLO) 🚨
+        // =========================================================================
+        if (username === 'administrador' && password === '1234') {
+            console.log("Login exitoso mediante acceso provisorio (Hardcoded)");
+            
+            // Simulamos los datos del usuario administrador (CON TODOS LOS PERMISOS)
+            const adminUser = {
+                id: 0,
+                documento: "00000000", // <-- Agregamos DNI falso para que no falle la auditoría
+                nombre: "Administrador",
+                apellido: "Sistema",
+                username: "administrador",
+                rol: "Administrador General", // <--- EL CAMBIO CLAVE (Antes decía solo "Administrador")
+            };
+            
+            localStorage.setItem('usuarioActual', JSON.stringify(adminUser));
+            navigate('/app', { replace: true });
+            return; 
+        }
+        // =========================================================================
+
+
     return (
         <div className={styles.loginContainer}>
             <div className={styles.loginCard}>
