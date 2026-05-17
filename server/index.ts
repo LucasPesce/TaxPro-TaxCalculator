@@ -2,6 +2,7 @@
 import express from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
+import cron from "node-cron";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -647,7 +648,10 @@ app.patch("/api/usuarios/:id/restaurar", async (req, res) => {
   }
 });
 
-app.delete("/api/usuarios/limpieza-definitiva", async (req, res) => {
+// "limpieza-definitiva"
+// Se ejecuta todos los días a las 00:00 (Medianoche)
+cron.schedule('0 0 * * *', async () => {
+  console.log("⏰ Ejecutando limpieza automática de usuarios inhabilitados...");
   try {
     const hace30Dias = new Date();
     hace30Dias.setDate(hace30Dias.getDate() - 30);
@@ -655,18 +659,15 @@ app.delete("/api/usuarios/limpieza-definitiva", async (req, res) => {
     const eliminados = await prisma.usuario.deleteMany({
       where: {
         activo: false,
-        fechaEliminacion: {
-          lte: hace30Dias,
-        },
+        fechaEliminacion: { lte: hace30Dias },
       },
     });
-    res.json({
-      message: `Se eliminaron permanentemente ${eliminados.count} usuarios.`,
-    });
+    console.log(`✅ Limpieza completada: ${eliminados.count} usuarios eliminados permanentemente.`);
   } catch (error) {
-    res.status(500).json({ error: "Error en la limpieza definitiva" });
+    console.error("❌ Error en la limpieza automática:", error);
   }
 });
+
 // --- ELIMINAR USUARIO DEFINITIVAMENTE (FORZADO) ---
 app.delete("/api/usuarios/:id/forzar", async (req, res) => {
   const id = parseInt(req.params.id, 10);
@@ -701,7 +702,7 @@ app.delete("/api/usuarios/:id/forzar", async (req, res) => {
   }
 });
 // ==================================================================
-// ======================== LOGIN REAL ==============================
+// ======================== LOGIN  ==============================
 // ==================================================================
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
