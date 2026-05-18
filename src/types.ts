@@ -64,3 +64,20 @@ export interface Usuario {
   activo: boolean;
   fechaEliminacion?: string | null;
 }
+
+export interface Cliente {
+  id: number;
+  razonSocial: string;
+  cuitEmpresa: string;
+  cuitRepresentante: string;
+  claveFiscal: string;
+  domicilio: string;
+  numero: string;
+  telefono: string;
+  email: string;
+  jurisdiccion: string;
+  condicionIva: string;
+  idActividad: string;
+  activo: boolean;
+  fechaEliminacion?: string | null;
+}

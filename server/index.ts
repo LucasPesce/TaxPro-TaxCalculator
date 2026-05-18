@@ -803,6 +803,107 @@ app.get("/api/auditoria", async (req, res) => {
 });
 
 // ==================================================================
+// ======================== MÓDULO CLIENTES =========================
+// ==================================================================
+
+// --- OBTENER CLIENTES ---
+app.get("/api/clientes", async (req, res) => {
+  try {
+    const clientes = await prisma.cliente.findMany({
+      orderBy: { razonSocial: "asc" },
+    });
+    // Ya NO enmascaramos la clave fiscal. Enviamos los datos crudos.
+    res.json(clientes);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener clientes" });
+  }
+});
+
+// --- CREAR CLIENTE ---
+app.post("/api/clientes", async (req, res) => {
+  const { razonSocial, cuitEmpresa, cuitRepresentante, claveFiscal, domicilio, numero, telefono, email, jurisdiccion, condicionIva, idActividad } = req.body;
+  try {
+    const nuevoCliente = await prisma.cliente.create({
+      data: { razonSocial, cuitEmpresa, cuitRepresentante, claveFiscal, domicilio, numero, telefono, email, jurisdiccion, condicionIva, idActividad, activo: true },
+    });
+
+    await registrarActividad(req, "CREACIÓN", "Cliente", nuevoCliente.id, `Se registró el cliente: ${razonSocial}`);
+    res.status(201).json(nuevoCliente);
+  } catch (error: any) {
+    if (error.code === "P2002") return res.status(400).json({ error: "El CUIT ya está registrado." });
+    res.status(500).json({ error: "Error al crear cliente" });
+  }
+});
+
+// --- ACTUALIZAR CLIENTE ---
+app.put("/api/clientes/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  // Agregamos 'numero' aquí 👇
+  const { razonSocial, cuitEmpresa, cuitRepresentante, claveFiscal, domicilio, numero, telefono, email, jurisdiccion, condicionIva, idActividad } = req.body;
+
+  try {
+    // Actualizamos TODOS los campos directamente, incluida la clave fiscal real y el numero
+    const dataToUpdate = { razonSocial, cuitEmpresa, cuitRepresentante, claveFiscal, domicilio, numero, telefono, email, jurisdiccion, condicionIva, idActividad };
+
+    const clienteActualizado = await prisma.cliente.update({
+      where: { id },
+      data: dataToUpdate,
+    });
+
+    await registrarActividad(req, "EDICIÓN", "Cliente", id, `Se editaron los datos del cliente: ${razonSocial}`);
+    res.json(clienteActualizado);
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(400).json({ error: "El CUIT ya existe." });
+    res.status(500).json({ error: "Error al actualizar cliente" });
+  }
+});
+
+// --- ELIMINAR CLIENTE ---
+app.delete("/api/clientes/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const inhabilitado = await prisma.cliente.update({
+      where: { id },
+      data: { activo: false, fechaEliminacion: new Date() },
+    });
+    await registrarActividad(req, "INHABILITACIÓN", "Cliente", id, `Cliente inhabilitado: ${inhabilitado.razonSocial}`);
+    res.json(inhabilitado);
+  } catch (error) {
+    res.status(500).json({ error: "Error al inhabilitar cliente" });
+  }
+});
+
+app.patch("/api/clientes/:id/restaurar", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const restaurado = await prisma.cliente.update({
+      where: { id },
+      data: { activo: true, fechaEliminacion: null },
+    });
+    await registrarActividad(req, "RESTAURACIÓN", "Cliente", id, `Cliente restaurado: ${restaurado.razonSocial}`);
+    res.json(restaurado);
+  } catch (error) {
+    res.status(500).json({ error: "Error al restaurar cliente" });
+  }
+});
+
+app.delete("/api/clientes/:id/forzar", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const clienteABorrar = await prisma.cliente.findUnique({ where: { id } });
+    if (!clienteABorrar) return res.status(404).json({ error: "Cliente no encontrado" });
+
+    await prisma.cliente.delete({ where: { id } });
+    await registrarActividad(req, "ELIMINACIÓN DEFINITIVA", "Cliente", id, `Se eliminó permanentemente al cliente: ${clienteABorrar.razonSocial}`);
+
+    res.json({ message: "Eliminado" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al eliminar definitivamente" });
+  }
+});
+
+
+// ==================================================================
 // ======================== LISTEN PUERTO ===========================
 // ==================================================================
 app.listen(PORT, () => {

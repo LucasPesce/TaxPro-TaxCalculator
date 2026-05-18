@@ -48,7 +48,10 @@ export const IvaVentasPage: React.FC = () => {
         <div className="iva-ventas-page">
             <h1 className="page-title">IVA Ventas</h1>
 
-            <FiltersSection onFileImport={handleFileImport} onSearch={handleSearch}
+            <FiltersSection 
+                modulo="ventas" // <--- NUEVO
+                onFileImport={handleFileImport} 
+                onSearch={handleSearch}
             />
             <DashboardSection invoices={allInvoices} />
 
