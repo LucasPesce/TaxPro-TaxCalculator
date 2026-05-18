@@ -89,3 +89,25 @@ model RegistroActividad {
   entidadId        Int      
   detalles         String?  
 }
+
+// --- MODELO DE CLIENTES ---
+model Cliente {
+  id                  Int       @id @default(autoincrement())
+  razonSocial         String
+  cuitEmpresa         String    @unique
+  cuitRepresentante   String
+  claveFiscal         String     
+  domicilio           String
+  numero              String
+  telefono            String
+  email               String
+  jurisdiccion        String
+  condicionIva        String
+  idActividad         String
+  
+  activo              Boolean   @default(true) 
+  fechaEliminacion    DateTime? 
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}

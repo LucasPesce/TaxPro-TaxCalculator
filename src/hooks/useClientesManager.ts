@@ -1,36 +1,36 @@
 import { useState, useEffect, useMemo } from 'react';
-import { type Usuario } from '../types';
+import { type Cliente } from '../../src/types'; 
 
-type SortKey = keyof Usuario;
+type SortKey = keyof Cliente;
 type SortDirection = "ascending" | "descending";
 
-export const useUsuariosManager = () => {
-    const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+export const useClientesManager = () => {
+    const [clientes, setClientes] = useState<Cliente[]>([]);
     
     // --- ESTADO PARA ORDENAMIENTO ---
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({
-        key: 'apellido',
+        key: 'razonSocial',
         direction: 'ascending',
     });
 
     // --- ESTADO PARA PAGINACIÓN ---
     const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 5; // Cantidad de filas por página
+    const ITEMS_PER_PAGE = 5;
 
-    const fetchUsuarios = async () => {
+    const fetchClientes = async () => {
         try {
-            const res = await fetch('/api/usuarios');
+            const res = await fetch('/api/clientes');
             if (res.ok) {
                 const data = await res.json();
-                setUsuarios(data);
+                setClientes(data);
             }
         } catch (error) {
-            console.error("Error fetching usuarios:", error);
+            console.error("Error fetching clientes:", error);
         }
     };
 
     useEffect(() => {
-        fetchUsuarios();
+        fetchClientes();
     }, []);
 
     const getHeaders = () => {
@@ -53,8 +53,9 @@ export const useUsuariosManager = () => {
         setSortConfig({ key, direction });
     };
 
-    const sortedUsuarios = useMemo(() => {
-        const sortableItems = [...usuarios];
+    const sortedClientes = useMemo(() => {
+        const sortableItems = [...clientes];
+        
         sortableItems.sort((a, b) => {
             let valA = a[sortConfig.key];
             let valB = b[sortConfig.key];
@@ -74,82 +75,82 @@ export const useUsuariosManager = () => {
             return 0;
         });
         return sortableItems;
-    }, [usuarios, sortConfig]);
+    }, [clientes, sortConfig]);
 
     // --- APLICAR PAGINACIÓN ---
-    const paginatedUsuarios = useMemo(() => {
+    const paginatedClientes = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return sortedUsuarios.slice(start, start + ITEMS_PER_PAGE);
-    }, [sortedUsuarios, currentPage]);
+        return sortedClientes.slice(start, start + ITEMS_PER_PAGE);
+    }, [sortedClientes, currentPage]);
 
-    const handleCreateUsuario = async (usuarioData: Partial<Usuario>) => {
+    const handleCreateCliente = async (clienteData: Partial<Cliente>) => {
         try {
-            const res = await fetch('/api/usuarios', {
+            const res = await fetch('/api/clientes', {
                 method: 'POST',
                 headers: getHeaders(), 
-                body: JSON.stringify(usuarioData)
+                body: JSON.stringify(clienteData)
             });
-            if (res.ok) fetchUsuarios();
+            if (res.ok) fetchClientes();
             else {
                 const err = await res.json();
-                alert(err.error || "Error al crear usuario");
+                alert(err.error || "Error al crear cliente");
             }
         } catch (error) {
             console.error(error);
         }
     };
 
-    const handleUpdateUsuario = async (id: number, usuarioData: Partial<Usuario>) => {
+    const handleUpdateCliente = async (id: number, clienteData: Partial<Cliente>) => {
         try {
-            const res = await fetch(`/api/usuarios/${id}`, {
+            const res = await fetch(`/api/clientes/${id}`, {
                 method: 'PUT',
                 headers: getHeaders(),
-                body: JSON.stringify(usuarioData)
+                body: JSON.stringify(clienteData)
             });
-            if (res.ok) fetchUsuarios();
+            if (res.ok) fetchClientes();
             else {
                 const err = await res.json();
-                alert(err.error || "Error al actualizar usuario");
+                alert(err.error || "Error al actualizar cliente");
             }
         } catch (error) {
             console.error(error);
         }
     };
 
-    const handleDeleteUsuario = async (id: number) => {
-        if (!window.confirm("¿Seguro que deseas inhabilitar este usuario? (Quedará en papelera por 30 días)")) return;
+    const handleDeleteCliente = async (id: number) => {
+        if (!window.confirm("¿Seguro que deseas inhabilitar este cliente? (Quedará en papelera por 30 días)")) return;
         try {
-            const res = await fetch(`/api/usuarios/${id}`, { 
+            const res = await fetch(`/api/clientes/${id}`, { 
                 method: 'DELETE',
                 headers: getHeaders()
             });
-            if (res.ok) fetchUsuarios();
+            if (res.ok) fetchClientes();
         } catch (error) {
             console.error(error);
         }
     };
 
-    const handleRestoreUsuario = async (id: number) => {
-        if (!window.confirm("¿Restaurar este usuario y darle acceso nuevamente?")) return;
+    const handleRestoreCliente = async (id: number) => {
+        if (!window.confirm("¿Restaurar este cliente y habilitarlo nuevamente?")) return;
         try {
-            const res = await fetch(`/api/usuarios/${id}/restaurar`, { 
+            const res = await fetch(`/api/clientes/${id}/restaurar`, { 
                 method: 'PATCH',
                 headers: getHeaders()
             });
-            if (res.ok) fetchUsuarios();
+            if (res.ok) fetchClientes();
         } catch (error) {
             console.error(error);
         }
     };
 
-    const handleForceDeleteUsuario = async (id: number) => {
-        if (!window.confirm("⚠️ ADVERTENCIA: Esta acción eliminará el usuario permanentemente y no se puede deshacer. ¿Continuar?")) return;
+    const handleForceDeleteCliente = async (id: number) => {
+        if (!window.confirm("⚠️ ADVERTENCIA: Esta acción eliminará el cliente permanentemente y no se puede deshacer. ¿Continuar?")) return;
         try {
-            const res = await fetch(`/api/usuarios/${id}/forzar`, { 
+            const res = await fetch(`/api/clientes/${id}/forzar`, { 
                 method: 'DELETE',
                 headers: getHeaders() 
             });
-            if (res.ok) fetchUsuarios();
+            if (res.ok) fetchClientes();
             else {
                  const err = await res.json();
                  alert(err.error || "Error al eliminar permanentemente");
@@ -160,17 +161,17 @@ export const useUsuariosManager = () => {
     };
 
     return {
-        usuarios: paginatedUsuarios, // Devolvemos la lista recortada para la página actual
-        totalUsuarios: usuarios.length, // Enviamos el total para que la paginación sepa cuántos botones dibujar
+        clientes: paginatedClientes, // Devuelve lista cortada
+        totalClientes: clientes.length, // Devuelve cantidad total
         currentPage,
         ITEMS_PER_PAGE,
         setCurrentPage,
-        sortConfig,               
-        handleSort,               
-        handleCreateUsuario,
-        handleUpdateUsuario,
-        handleDeleteUsuario,
-        handleRestoreUsuario,
-        handleForceDeleteUsuario
+        sortConfig,
+        handleSort,
+        handleCreateCliente,
+        handleUpdateCliente,
+        handleDeleteCliente,
+        handleRestoreCliente,
+        handleForceDeleteCliente
     };
 };

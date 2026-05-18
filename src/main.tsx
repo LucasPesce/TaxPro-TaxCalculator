@@ -10,6 +10,7 @@ import { IvaComprasPage } from './pages/IvaCompras/IvaComprasPage';
 import { UsuariosPage } from './pages/Usuarios/UsuariosPage';
 import { LoginPage } from './pages/Login/LoginPage';
 import { AuditoriaPage } from './pages/Auditoria/AuditoriaPage.tsx';
+import { ClientesPage } from './pages/Clientes/ClientesPage.tsx';
 import { checkAccess, getCurrentUser, type Modulo } from './utils/auth';
 
 // COMPONENTE PARA PROTEGER RUTAS
@@ -29,30 +30,39 @@ const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   {
     path: "/app",
-    element: <App />, 
+    element: <App />,
     children: [
       { index: true, element: <DashboardPage /> },
-      
+
       // Protegemos Operaciones (Ventas y Compras)
-      { element: <ProtectedRoute moduloAControlar="Operaciones" />, children: [
+      {
+        element: <ProtectedRoute moduloAControlar="Operaciones" />, children: [
+          { path: "clientes", element: <ClientesPage /> }, // <-- AQUI
           { path: "iva-ventas", element: <IvaVentasPage /> },
           { path: "iva-compras", element: <IvaComprasPage /> },
-      ]},
+        ]
+      },
 
       // Protegemos Usuarios
-      { element: <ProtectedRoute moduloAControlar="Usuarios" />, children: [
+      {
+        element: <ProtectedRoute moduloAControlar="Usuarios" />, children: [
           { path: "usuarios", element: <UsuariosPage /> },
-      ]},
+        ]
+      },
 
       // Protegemos Auditoría
-      { element: <ProtectedRoute moduloAControlar="Auditoria" />, children: [
+      {
+        element: <ProtectedRoute moduloAControlar="Auditoria" />, children: [
           { path: "auditoria", element: <AuditoriaPage /> },
-      ]},
+        ]
+      },
 
       // Protegemos Dashboard de Control
-      { element: <ProtectedRoute moduloAControlar="Dashboard" />, children: [
+      {
+        element: <ProtectedRoute moduloAControlar="Dashboard" />, children: [
           { path: "dashboard-control", element: <DashboardPage /> },
-      ]},
+        ]
+      },
     ],
   },
   { path: "/", element: <Navigate to="/login" replace /> }

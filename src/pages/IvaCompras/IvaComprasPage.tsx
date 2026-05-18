@@ -97,6 +97,7 @@ export const IvaComprasPage: React.FC = () => {
 
             {/* Filtros (Reutilizados de Ventas) */}
             <FiltersSection
+                modulo="compras" // <--- NUEVO
                 onFileImport={handleFileImport}
                 onSearch={handleSearch}
             />
@@ -126,7 +127,7 @@ export const IvaComprasPage: React.FC = () => {
             </div>
 
             {/* Tabla Principal */}
-             <InvoicesPurchaseTable
+            <InvoicesPurchaseTable
                 invoices={invoices}
                 onSort={handleSort as any}
                 onUpdate={handleUpdateInvoice}

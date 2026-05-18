@@ -4,8 +4,8 @@ import { EditUsuarioModal } from './components/EditUsuarioModal';
 import { Button } from '../../components/ui/Button/Button';
 import { Card } from '../../components/ui/Card/Card';
 import { StatusBadge } from '../../components/ui/StatusBadge/StatusBadge';
+import { Pagination } from '../../components/ui/Pagination/Pagination';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-// Agregamos faExclamationCircle para el cartel de aviso y quitamos faUserXmark
 import { faPlus, faPencil, faTrash, faRotateLeft, faSort, faSortUp, faSortDown, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 import { type Usuario } from '../../types';
 
@@ -18,7 +18,12 @@ export const UsuariosPage: React.FC = () => {
         handleUpdateUsuario, 
         handleDeleteUsuario, 
         handleRestoreUsuario, 
-        handleForceDeleteUsuario 
+        handleForceDeleteUsuario,
+        // Variables nuevas para paginación
+        totalUsuarios,
+        currentPage,
+        ITEMS_PER_PAGE,
+        setCurrentPage
     } = useUsuariosManager();
     
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,28 +56,18 @@ export const UsuariosPage: React.FC = () => {
         transition: 'background-color 0.2s'
     };
 
-    // --- FUNCIÓN PARA CALCULAR DÍAS RESTANTES ---
     const getDiasRestantes = (fechaEliminacion: string | null | undefined) => {
         if (!fechaEliminacion) return 0;
-        
-        // 1. Convertimos la fecha de eliminación a objeto Date
         const fechaElim = new Date(fechaEliminacion);
-        
-        // 2. Le sumamos 30 días para saber la fecha límite
         const fechaLimite = new Date(fechaElim);
         fechaLimite.setDate(fechaLimite.getDate() + 30);
-        
-        // 3. Calculamos la diferencia entre hoy y la fecha límite
         const hoy = new Date();
         const diffTiempo = fechaLimite.getTime() - hoy.getTime();
-        
-        // 4. Convertimos milisegundos a días (redondeando hacia arriba)
         const diffDias = Math.ceil(diffTiempo / (1000 * 60 * 60 * 24));
-        
         return diffDias > 0 ? diffDias : 0;
     };
 
-    // Filtramos solo los usuarios que están inhabilitados para mostrar el aviso
+    // Usamos el array original SIN paginar para contar cuántos hay en la papelera
     const usuariosEnPapelera = usuarios.filter(u => !u.activo && u.fechaEliminacion);
 
     return (
@@ -122,7 +117,6 @@ export const UsuariosPage: React.FC = () => {
                                     <td style={{ padding: '12px' }}><strong>{u.username}</strong></td>
                                     <td style={{ padding: '12px' }}>{u.rol}</td>
                                     <td style={{ padding: '12px' }}>
-                                        {/* APLICAMOS EL CAMBIO 1: Habilitado / Inhabilitado */}
                                         <StatusBadge status={u.activo ? 'Habilitado' : 'Inhabilitado'} /> 
                                     </td>
                                     <td style={{ padding: '12px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
@@ -139,7 +133,6 @@ export const UsuariosPage: React.FC = () => {
                                                 <Button variant="icon" onClick={() => handleRestoreUsuario(u.id)} title="Restaurar Usuario">
                                                     <FontAwesomeIcon icon={faRotateLeft} color="#2196F3" />
                                                 </Button>
-                                                {/* APLICAMOS EL CAMBIO 3: Mismo ícono (faTrash) para el borrado definitivo */}
                                                 <Button variant="icon" onClick={() => handleForceDeleteUsuario(u.id)} title="Eliminar Definitivamente">
                                                     <FontAwesomeIcon icon={faTrash} color="#db0012" />
                                                 </Button>
@@ -160,17 +153,22 @@ export const UsuariosPage: React.FC = () => {
                 </div>
             </Card>
 
-            {/* --- APLICAMOS EL CAMBIO 2: CARTEL DE ADVERTENCIA DE ELIMINACIÓN --- */}
-{usuariosEnPapelera.length > 0 && (
+            {/* --- COMPONENTE DE PAGINACIÓN --- */}
+            <Pagination
+                currentPage={currentPage}
+                totalItems={totalUsuarios}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+            />
+
+            {usuariosEnPapelera.length > 0 && (
                 <div style={{ 
                     marginTop: '8px', 
                     padding: '16px 20px', 
-                    // El fondo ahora es una mezcla translúcida del color de acento
-                    backgroundColor: 'color-mix(in srgb, var(--primary-color) 15%, transparent)',
-                    // El borde y el color del texto usan directamente tu color de acento
-                    border: '1px solid var(--primary-color)', 
+                    backgroundColor: 'color-mix(in srgb, var(--accent-color) 15%, transparent)',
+                    border: '1px solid var(--accent-color)', 
                     borderRadius: '8px', 
-                    color: 'var(--primary-color)', 
+                    color: 'var(--accent-color)', 
                     fontSize: '0.95rem'
                 }}>
                     <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>

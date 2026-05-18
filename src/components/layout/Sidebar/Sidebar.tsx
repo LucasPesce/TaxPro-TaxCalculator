@@ -1,7 +1,7 @@
 //================= IMPORTACIONES =================
 import React from 'react';
 import './Sidebar.css';
-import logoImg from '../../../assets/images/logo.png';
+import logoImg from '../../../assets/images/marca.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import { ThemeToggle, CollapsedThemeToggle } from '../../ui/ThemeToggle/ThemeToggle';
@@ -67,9 +67,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
                     </li>
                 )}
 
+                {/* --- MÓDULO: OPERACIONES (Trabajo Diario) --- */}
                 {checkAccess(rol, 'Operaciones') && (
                     <>
-                        <li className="menu-item"><a href="#"><i className="fa-solid fa-users"></i><span>Clientes</span></a></li>
+                        <li className="menu-item">
+                            <Link to="/app/clientes"><i className="fa-solid fa-users"></i><span>Clientes</span></Link>
+                        </li>
+
                         <li className="menu-item"><a href="#"><i className="fa-solid fa-dolly"></i><span>Proveedores</span></a></li>
                         <li className="menu-item"><Link to="/app/iva-ventas"><i className="fa-solid fa-receipt"></i><span>IVA Ventas</span></Link></li>
                         <li className="menu-item"><Link to="/app/iva-compras"><i className="fa-solid fa-file-invoice-dollar"></i><span>IVA Compras</span></Link></li>
@@ -97,5 +101,4 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
     );
 };
 
-//================= EXPORTACIÓN DEL COMPONENTE =================
 export default Sidebar;
