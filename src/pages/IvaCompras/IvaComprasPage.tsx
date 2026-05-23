@@ -7,10 +7,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './IvaComprasPage.css';
 
 // Hooks
-import { useIvaComprasManager } from './hooks/useIvaComprasManager';
+import { useIvaComprasManager } from '../../hooks/useIvaComprasManager';
 
 // Componentes UI
-import { FiltersSection } from '../IvaVentas/components/FiltersSection/FiltersSection'; // Reutilizamos filtros
+import { FiltersSection } from '../../components/ui/FiltersSection/FiltersSection'; // Reutilizamos filtros
 import { Pagination } from '../../components/ui/Pagination/Pagination';
 import { ChartCard } from '../../components/ui/ChartCard/ChartCard';
 import { PercentageChart } from '../../components/ui/PercentageChart/PercentageChart';
@@ -97,9 +97,10 @@ export const IvaComprasPage: React.FC = () => {
 
             {/* Filtros (Reutilizados de Ventas) */}
             <FiltersSection
-                modulo="compras" // <--- NUEVO
+                modulo="compras"
                 onFileImport={handleFileImport}
                 onSearch={handleSearch}
+                hasData={allInvoices.length > 0} 
             />
 
             {/* Dashboard de 4 Paneles */}
@@ -132,7 +133,6 @@ export const IvaComprasPage: React.FC = () => {
                 onSort={handleSort as any}
                 onUpdate={handleUpdateInvoice}
                 sortConfig={sortConfig}
-                // CÓDIGO NUEVO (USAR LA FUNCIÓN)
                 onEdit={openEditModal}
             />
 

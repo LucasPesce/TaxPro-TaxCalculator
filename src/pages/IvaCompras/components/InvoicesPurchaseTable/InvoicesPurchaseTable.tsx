@@ -9,11 +9,10 @@ import styles from './InvoicesPurchaseTable.module.css';
 
 interface InvoicesPurchaseTableProps {
     invoices: PurchaseInvoice[];
-    onSort: (key: keyof PurchaseInvoice) => void;
+    onSort: (key: any) => void; 
     onUpdate: (invoice: PurchaseInvoice) => void;
     onEdit: (invoice: PurchaseInvoice) => void;
-    sortConfig: { key: keyof PurchaseInvoice; direction: 'ascending' | 'descending' };
-
+    sortConfig: { key: string | number | symbol; direction: 'ascending' | 'descending' };
 }
 
 const formatMoney = (val: number) =>
@@ -37,7 +36,7 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
 
 
     // Función para mostrar el ícono correcto
-    const getSortIcon = (columnKey: keyof PurchaseInvoice) => {
+    const getSortIcon = (columnKey: any) => {
         if (sortConfig.key !== columnKey) return faSort;
         return sortConfig.direction === 'ascending' ? faSortUp : faSortDown;
     };

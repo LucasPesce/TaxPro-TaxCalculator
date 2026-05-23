@@ -81,3 +81,19 @@ export interface Cliente {
   activo: boolean;
   fechaEliminacion?: string | null;
 }
+
+export interface Proveedor {
+  id: number;
+  razonSocial: string;
+  cuitProveedor: string;
+  domicilio: string;
+  numero: string;
+  telefono: string;
+  email: string;
+  jurisdiccion: string;
+  condicionIva: string;
+  idActividad: string;
+  idTipoCompra: string;
+  activo: boolean;
+  fechaEliminacion?: string | null;
+}

@@ -20,6 +20,8 @@ const registrarActividad = async (
   entidadAfectada: string,
   entidadId: number,
   detalles: string,
+  datosAnteriores: any = null,
+  datosNuevos: any = null,
 ) => {
   const operadorId = parseInt(req.header("X-Operador-Id") || "0", 10);
   const operadorDoc = req.header("X-Operador-Doc") || "Desconocido";
@@ -32,8 +34,10 @@ const registrarActividad = async (
       operadorNombre,
       accion,
       entidadAfectada,
-      entidadId, // Si es un lote masivo, enviamos 0
+      entidadId,
       detalles,
+      datosAnteriores: datosAnteriores ? JSON.stringify(datosAnteriores) : null,
+      datosNuevos: datosNuevos ? JSON.stringify(datosNuevos) : null,
     },
   });
 };
@@ -49,18 +53,28 @@ app.get("/api/facturas", async (req, res) => {
 
     if (search) {
       const searchTerm = String(search);
+      const searchLimpio = searchTerm.replace(/\D/g, ""); 
+      
       whereClause.AND.push({
         OR: [
           { nombreEmpresa: { contains: searchTerm } },
-          { cuitCliente: { contains: searchTerm } },
+          { cuitCliente: { contains: searchLimpio } },
         ],
       });
     }
 
     if (period) {
-      const [year, month] = String(period).split("-");
-      const searchString = `/${month}/${year}`;
-      whereClause.AND.push({ fecha: { endsWith: searchString } });
+      const [year, month] = String(period).split("-"); 
+      const monthSingle = parseInt(month, 10).toString(); 
+      
+      whereClause.AND.push({
+        OR: [
+          { fecha: { contains: `/${month}/${year}` } },      // Ej: 15/02/2025
+          { fecha: { contains: `/${monthSingle}/${year}` } },// Ej: 1/2/2025
+          { fecha: { contains: `${year}-${month}` } },       // Ej: 2025-02-15
+          { fecha: { contains: `${year}-${monthSingle}` } }  // Ej: 2025-2-1
+        ]
+      });
     }
 
     const facturas = await prisma.facturaVenta.findMany({
@@ -69,13 +83,14 @@ app.get("/api/facturas", async (req, res) => {
     });
 
     res.json(facturas);
+     console.log("🔍 [Ventas] Filtro de búsqueda generado:", JSON.stringify(whereClause));
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al obtener las facturas" });
   }
 });
 
-// --- IMPORTACIÓN LOTES VENTAS (OPTIMIZADO) ---
 app.post("/api/facturas/lote", async (req, res) => {
   const { invoices, cuitEmpresa, nombreEmpresa } = req.body;
 
@@ -87,12 +102,29 @@ app.post("/api/facturas/lote", async (req, res) => {
     const cuitActual = String(cuitEmpresa);
     let facturasInsertadas = 0;
 
+
+ console.log(`📥 Recibida petición de importación de Ventas para CUIT: ${cuitActual}`);
+    console.log(`📊 Cantidad de facturas enviadas por el navegador: ${invoices.length}`);
+
+
+
+    const periodoMuestra =
+      invoices.length > 0 ? invoices[0].fecha.substring(3) : "Desconocido";
+
     for (const f of invoices) {
+      // Log de diagnóstico para ver qué datos le llegaron al servidor
+      console.log(`🔍 Validando Factura: Nro: "${f.nro}" | Cliente CUIT: "${cuitActual}"`);
+
       const existe = await prisma.facturaVenta.findFirst({
         where: { cuitCliente: cuitActual, numeroFactura: f.nro },
       });
 
+      if (existe) {
+        console.log(`⚠️ Ignorada por duplicada (Ya existe en BD): Nro: "${f.nro}"`);
+      }
+
       if (!existe) {
+        console.log(`💾 Guardando en BD: Nro: "${f.nro}"`);
         await prisma.facturaVenta.create({
           data: {
             cuitCliente: cuitActual,
@@ -114,15 +146,15 @@ app.post("/api/facturas/lote", async (req, res) => {
         facturasInsertadas++;
       }
     }
+    console.log(`📊 TOTAL FACTURAS REALMENTE GUARDADAS: ${facturasInsertadas}`);
 
-    // 🚨 AUDITORÍA SINTETIZADA: Solo 1 registro por la importación completa
     if (facturasInsertadas > 0) {
       await registrarActividad(
         req,
-        "IMPORTACIÓN MASIVA",
+        "IMPORTACIÓN",
         "Lote Ventas",
         0,
-        `Se importaron ${facturasInsertadas} facturas de venta para el CUIT ${cuitActual}`,
+        `El usuario importó ${facturasInsertadas} facturas del cliente ${nombreEmpresa} (${cuitActual}) correspondientes al periodo ${periodoMuestra}`,
       );
     }
 
@@ -196,7 +228,6 @@ app.post("/api/facturas/lote", async (req, res) => {
       }
     }
 
-    // 🚨 AUDITORÍA SINTETIZADA DE HUECOS
     if (huecosGenerados > 0) {
       await registrarActividad(
         req,
@@ -223,6 +254,10 @@ app.put("/api/facturas/:id", async (req, res) => {
   const datos = req.body;
 
   try {
+    const registroAnterior = await prisma.facturaVenta.findUnique({
+      where: { id },
+    });
+
     const facturaActualizada = await prisma.facturaVenta.update({
       where: { id: id },
       data: {
@@ -245,7 +280,9 @@ app.put("/api/facturas/:id", async (req, res) => {
       "EDICIÓN",
       "FacturaVenta",
       id,
-      `Se editó la factura de venta: ${facturaActualizada.numeroFactura} (CUIT: ${facturaActualizada.cuitCliente})`,
+      `Se editó la factura de venta: ${facturaActualizada.numeroFactura}`,
+      registroAnterior,
+      facturaActualizada,
     );
 
     res.json(facturaActualizada);
@@ -264,32 +301,46 @@ app.get("/api/compras", async (req, res) => {
   try {
     const whereClause: any = { AND: [] };
 
-    if (search) {
+if (search) {
       const term = String(search);
+      const termLimpio = term.replace(/\D/g, ""); 
+      
       whereClause.AND.push({
         OR: [
-          { nombreEmpresa: { contains: term } },
-          { cuitEmpresa: { contains: term } },
+          { nombreEmpresa: { contains: term } }, 
+          { cuitEmpresa: { contains: termLimpio } }, 
         ],
       });
     }
+
     if (period) {
       const [year, month] = String(period).split("-");
-      const searchString = `/${month}/${year}`;
-      whereClause.AND.push({ fechaImputacion: { endsWith: searchString } });
+      const monthSingle = parseInt(month, 10).toString(); 
+      
+      whereClause.AND.push({
+        OR: [
+          { fechaImputacion: { contains: `/${month}/${year}` } },
+          { fechaImputacion: { contains: `/${monthSingle}/${year}` } },
+          { fechaImputacion: { contains: `${year}-${month}` } },
+          { fechaImputacion: { contains: `${year}-${monthSingle}` } }
+        ]
+      });
     }
 
     const compras = await prisma.facturaCompra.findMany({
-      where: whereClause,
+      where: whereClause.AND.length > 0 ? whereClause : undefined,
       orderBy: { fechaImputacion: "asc" },
     });
+
+    // 🚨 Nos dirá si la base de datos devolvió los registros o no
+
     res.json(compras);
+
   } catch (error) {
     res.status(500).json({ error: "Error al obtener compras" });
   }
 });
 
-// --- IMPORTACIÓN LOTES COMPRAS (OPTIMIZADO) ---
 app.post("/api/compras/lote", async (req, res) => {
   const { invoices, cuitEmpresa, nombreEmpresa } = req.body;
 
@@ -300,16 +351,21 @@ app.post("/api/compras/lote", async (req, res) => {
     const cuitActual = String(cuitEmpresa);
     let comprasInsertadas = 0;
 
+    const periodoMuestra =
+      invoices.length > 0
+        ? invoices[0].fechaImputacion.substring(3)
+        : "Desconocido";
+
     for (const f of invoices) {
       const existe = await prisma.facturaCompra.findFirst({
         where: {
           cuitEmpresa: cuitActual,
-          cuitProveedor: f.cuitProveedor,
+          cuitProveedor: f.cuitProveedor, 
           numeroFactura: f.nro,
         },
       });
 
-      if (!existe) {
+     if (!existe) {
         await prisma.facturaCompra.create({
           data: {
             cuitEmpresa: cuitActual,
@@ -340,15 +396,13 @@ app.post("/api/compras/lote", async (req, res) => {
         comprasInsertadas++;
       }
     }
-
-    // 🚨 AUDITORÍA SINTETIZADA
     if (comprasInsertadas > 0) {
       await registrarActividad(
         req,
-        "IMPORTACIÓN MASIVA",
+        "IMPORTACIÓN",
         "Lote Compras",
         0,
-        `Se importaron ${comprasInsertadas} facturas de compra para el CUIT ${cuitActual}`,
+        `El usuario importó ${comprasInsertadas} comprobantes del cliente ${nombreEmpresa} (${cuitActual}) periodo ${periodoMuestra}`,
       );
     }
 
@@ -401,7 +455,7 @@ app.post("/api/compras", async (req, res) => {
       "CREACIÓN",
       "FacturaCompra",
       nueva.id,
-      `Alta manual de compra: ${f.nro} (CUIT Empresa: ${cuitActual})`,
+      `Alta manual de compra: ${f.nro}`,
     );
 
     res.json(nueva);
@@ -416,6 +470,10 @@ app.put("/api/compras/:id", async (req, res) => {
   const datos = req.body;
 
   try {
+    const registroAnterior = await prisma.facturaCompra.findUnique({
+      where: { id },
+    });
+
     const actualizada = await prisma.facturaCompra.update({
       where: { id },
       data: {
@@ -444,7 +502,9 @@ app.put("/api/compras/:id", async (req, res) => {
       "EDICIÓN",
       "FacturaCompra",
       id,
-      `Se editó la compra: ${actualizada.numeroFactura} (CUIT Empresa: ${actualizada.cuitEmpresa})`,
+      `Se editó la compra: ${actualizada.numeroFactura}`,
+      registroAnterior,
+      actualizada,
     );
 
     res.json(actualizada);
@@ -454,7 +514,7 @@ app.put("/api/compras/:id", async (req, res) => {
   }
 });
 
-// --- RUTA COMPARTIDA: IMPACTAR (COMPRAS Y VENTAS) (OPTIMIZADO) ---
+// --- RUTA COMPARTIDA: IMPACTAR (COMPRAS Y VENTAS) ---
 app.post("/api/facturas/impactar", async (req, res) => {
   const { cuitEmpresa, periodo, tipoOperacion } = req.body;
 
@@ -487,13 +547,12 @@ app.post("/api/facturas/impactar", async (req, res) => {
       });
     }
 
-    // 🚨 AUDITORÍA SINTETIZADA: 1 solo registro por el cierre del periodo
     await registrarActividad(
       req,
       "IMPACTO (CIERRE)",
       esCompra ? "Lote Compras" : "Lote Ventas",
       0,
-      `Se cerró e impactó el periodo ${periodo} de ${esCompra ? "Compras" : "Ventas"} para el CUIT ${cuitEmpresa}. Total registros: ${facturasAImpactar.length}`,
+      `Se cerró e impactó el periodo ${periodo} para el CUIT ${cuitEmpresa}. Total registros congelados: ${facturasAImpactar.length}`,
     );
 
     res.json({
@@ -503,6 +562,293 @@ app.post("/api/facturas/impactar", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al impactar datos" });
+  }
+});
+
+// ==================================================================
+// ======================== MÓDULO PROVEEDORES ======================
+// ==================================================================
+
+app.get("/api/proveedores", async (req, res) => {
+  try {
+    const proveedores = await prisma.proveedor.findMany({
+      orderBy: { razonSocial: "asc" },
+    });
+    res.json(proveedores);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al obtener proveedores" });
+  }
+});
+
+app.post("/api/proveedores", async (req, res) => {
+  const {
+    razonSocial,
+    cuitProveedor,
+    domicilio,
+    numero,
+    telefono,
+    email,
+    jurisdiccion,
+    condicionIva,
+    idActividad,
+    idTipoCompra,
+  } = req.body;
+  try {
+    const nuevo = await prisma.proveedor.create({
+      data: {
+        razonSocial,
+        cuitProveedor,
+        domicilio,
+        numero,
+        telefono,
+        email,
+        jurisdiccion,
+        condicionIva,
+        idActividad,
+        idTipoCompra,
+        activo: true,
+      },
+    });
+    await registrarActividad(
+      req,
+      "CREACIÓN",
+      "Proveedor",
+      nuevo.id,
+      `Se registró el proveedor: ${razonSocial}`,
+    );
+    res.status(201).json(nuevo);
+  } catch (error: any) {
+    if (error.code === "P2002")
+      return res
+        .status(400)
+        .json({ error: "El CUIT del proveedor ya está registrado." });
+    res.status(500).json({ error: "Error al crear proveedor" });
+  }
+});
+
+app.put("/api/proveedores/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const dataToUpdate = req.body;
+
+  try {
+    const registroAnterior = await prisma.proveedor.findUnique({
+      where: { id },
+    });
+    const actualizado = await prisma.proveedor.update({
+      where: { id },
+      data: dataToUpdate,
+    });
+    await registrarActividad(
+      req,
+      "EDICIÓN",
+      "Proveedor",
+      id,
+      `Se editaron los datos del proveedor: ${actualizado.razonSocial}`,
+      registroAnterior,
+      actualizado,
+    );
+    res.json(actualizado);
+  } catch (error: any) {
+    if (error.code === "P2002")
+      return res.status(400).json({ error: "El CUIT ya existe." });
+    res.status(500).json({ error: "Error al actualizar proveedor" });
+  }
+});
+
+app.delete("/api/proveedores/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const inhabilitado = await prisma.proveedor.update({
+      where: { id },
+      data: { activo: false, fechaEliminacion: new Date() },
+    });
+    await registrarActividad(
+      req,
+      "INHABILITACIÓN",
+      "Proveedor",
+      id,
+      `Proveedor inhabilitado: ${inhabilitado.razonSocial}`,
+    );
+    res.json(inhabilitado);
+  } catch (error) {
+    res.status(500).json({ error: "Error al inhabilitar proveedor" });
+  }
+});
+
+app.patch("/api/proveedores/:id/restaurar", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const restaurado = await prisma.proveedor.update({
+      where: { id },
+      data: { activo: true, fechaEliminacion: null },
+    });
+    await registrarActividad(
+      req,
+      "RESTAURACIÓN",
+      "Proveedor",
+      id,
+      `Proveedor restaurado: ${restaurado.razonSocial}`,
+    );
+    res.json(restaurado);
+  } catch (error) {
+    res.status(500).json({ error: "Error al restaurar proveedor" });
+  }
+});
+
+// ==================================================================
+// ======================== MÓDULO CLIENTES =========================
+// ==================================================================
+
+app.get("/api/clientes", async (req, res) => {
+  try {
+    const clientes = await prisma.cliente.findMany({
+      orderBy: { razonSocial: "asc" },
+    });
+    res.json(clientes);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener clientes" });
+  }
+});
+
+app.post("/api/clientes", async (req, res) => {
+  const {
+    razonSocial,
+    cuitEmpresa,
+    cuitRepresentante,
+    claveFiscal,
+    domicilio,
+    numero,
+    telefono,
+    email,
+    jurisdiccion,
+    condicionIva,
+    idActividad,
+  } = req.body;
+  try {
+    const nuevoCliente = await prisma.cliente.create({
+      data: {
+        razonSocial,
+        cuitEmpresa,
+        cuitRepresentante,
+        claveFiscal,
+        domicilio,
+        numero,
+        telefono,
+        email,
+        jurisdiccion,
+        condicionIva,
+        idActividad,
+        activo: true,
+      },
+    });
+
+    await registrarActividad(
+      req,
+      "CREACIÓN",
+      "Cliente",
+      nuevoCliente.id,
+      `Se registró el cliente: ${razonSocial}`,
+    );
+    res.status(201).json(nuevoCliente);
+  } catch (error: any) {
+    if (error.code === "P2002")
+      return res.status(400).json({ error: "El CUIT ya está registrado." });
+    res.status(500).json({ error: "Error al crear cliente" });
+  }
+});
+
+app.put("/api/clientes/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const {
+    razonSocial,
+    cuitEmpresa,
+    cuitRepresentante,
+    claveFiscal,
+    domicilio,
+    numero,
+    telefono,
+    email,
+    jurisdiccion,
+    condicionIva,
+    idActividad,
+  } = req.body;
+
+  try {
+    const registroAnterior = await prisma.cliente.findUnique({ where: { id } });
+    const dataToUpdate = {
+      razonSocial,
+      cuitEmpresa,
+      cuitRepresentante,
+      claveFiscal,
+      domicilio,
+      numero,
+      telefono,
+      email,
+      jurisdiccion,
+      condicionIva,
+      idActividad,
+    };
+
+    const clienteActualizado = await prisma.cliente.update({
+      where: { id },
+      data: dataToUpdate,
+    });
+
+    await registrarActividad(
+      req,
+      "EDICIÓN",
+      "Cliente",
+      id,
+      `Se editaron los datos del cliente: ${razonSocial}`,
+      registroAnterior,
+      clienteActualizado,
+    );
+    res.json(clienteActualizado);
+  } catch (error: any) {
+    if (error.code === "P2002")
+      return res.status(400).json({ error: "El CUIT ya existe." });
+    res.status(500).json({ error: "Error al actualizar cliente" });
+  }
+});
+
+app.delete("/api/clientes/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const inhabilitado = await prisma.cliente.update({
+      where: { id },
+      data: { activo: false, fechaEliminacion: new Date() },
+    });
+    await registrarActividad(
+      req,
+      "INHABILITACIÓN",
+      "Cliente",
+      id,
+      `Cliente inhabilitado: ${inhabilitado.razonSocial}`,
+    );
+    res.json(inhabilitado);
+  } catch (error) {
+    res.status(500).json({ error: "Error al inhabilitar cliente" });
+  }
+});
+
+app.patch("/api/clientes/:id/restaurar", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const restaurado = await prisma.cliente.update({
+      where: { id },
+      data: { activo: true, fechaEliminacion: null },
+    });
+    await registrarActividad(
+      req,
+      "RESTAURACIÓN",
+      "Cliente",
+      id,
+      `Cliente restaurado: ${restaurado.razonSocial}`,
+    );
+    res.json(restaurado);
+  } catch (error) {
+    res.status(500).json({ error: "Error al restaurar cliente" });
   }
 });
 
@@ -567,6 +913,7 @@ app.put("/api/usuarios/:id", async (req, res) => {
   const { documento, nombre, apellido, username, rol, password } = req.body;
 
   try {
+    const registroAnterior = await prisma.usuario.findUnique({ where: { id } });
     const dataToUpdate: any = { documento, nombre, apellido, username, rol };
     if (password && password !== "••••••••") {
       dataToUpdate.password = password;
@@ -583,6 +930,8 @@ app.put("/api/usuarios/:id", async (req, res) => {
       "Usuario",
       id,
       `Se editaron los datos del usuario: ${username}`,
+      registroAnterior,
+      usuarioActualizado,
     );
 
     res.json(usuarioActualizado);
@@ -648,9 +997,10 @@ app.patch("/api/usuarios/:id/restaurar", async (req, res) => {
   }
 });
 
-// "limpieza-definitiva"
-// Se ejecuta todos los días a las 00:00 (Medianoche)
-cron.schedule('0 0 * * *', async () => {
+// ==================================================================
+// ==================== CRON JOB: LIMPIEZA DIARIA ===================
+// ==================================================================
+cron.schedule("0 0 * * *", async () => {
   console.log("⏰ Ejecutando limpieza automática de usuarios inhabilitados...");
   try {
     const hace30Dias = new Date();
@@ -662,47 +1012,61 @@ cron.schedule('0 0 * * *', async () => {
         fechaEliminacion: { lte: hace30Dias },
       },
     });
-    console.log(`✅ Limpieza completada: ${eliminados.count} usuarios eliminados permanentemente.`);
+    console.log(
+      `✅ Limpieza completada: ${eliminados.count} usuarios eliminados permanentemente.`,
+    );
   } catch (error) {
     console.error("❌ Error en la limpieza automática:", error);
   }
 });
 
-// --- ELIMINAR USUARIO DEFINITIVAMENTE (FORZADO) ---
-app.delete("/api/usuarios/:id/forzar", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  try {
-    // 1. Buscamos al usuario para obtener sus datos antes de borrarlo (para la auditoría)
-    const usuarioABorrar = await prisma.usuario.findUnique({ where: { id } });
+// ==================================================================
+// ======================== MÓDULO AUDITORÍA ========================
+// ==================================================================
+app.get("/api/auditoria", async (req, res) => {
+  const { fechaDesde, fechaHasta, operador, modulo } = req.query;
 
-    if (!usuarioABorrar) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
+  try {
+    const whereClause: any = { AND: [] };
+
+    // Filtro por Rango de Fechas (Desde - Hasta)
+    if (fechaDesde && fechaHasta) {
+      const startOfDay = new Date(`${fechaDesde}T00:00:00.000Z`);
+      const endOfDay = new Date(`${fechaHasta}T23:59:59.999Z`);
+      whereClause.AND.push({
+        fechaHora: { gte: startOfDay, lte: endOfDay },
+      });
     }
 
-    // 2. Lo borramos definitivamente de la base de datos
-    await prisma.usuario.delete({
-      where: { id },
+    if (operador) {
+      whereClause.AND.push({
+        OR: [
+          { operadorNombre: { contains: String(operador) } },
+          { operadorDoc: { contains: String(operador) } },
+        ],
+      });
+    }
+
+    if (modulo) {
+      whereClause.AND.push({
+        entidadAfectada: { contains: String(modulo) },
+      });
+    }
+
+    const registros = await prisma.registroActividad.findMany({
+      where: whereClause.AND.length > 0 ? whereClause : undefined,
+      orderBy: { fechaHora: "desc" },
     });
 
-    // 3. Registramos en auditoría que fue borrado del sistema
-    await registrarActividad(
-      req,
-      "ELIMINACIÓN DEFINITIVA",
-      "Usuario",
-      id,
-      `Se eliminó permanentemente del sistema al usuario: ${usuarioABorrar.username} (DNI: ${usuarioABorrar.documento})`,
-    );
-
-    res.json({ message: "Usuario eliminado permanentemente del sistema." });
+    res.json(registros);
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ error: "Error al eliminar usuario permanentemente" });
+    res.status(500).json({ error: "Error al obtener la auditoría" });
   }
 });
+
 // ==================================================================
-// ======================== LOGIN  ==============================
+// ======================== LOGIN REAL ==============================
 // ==================================================================
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
@@ -732,7 +1096,6 @@ app.post("/api/login", async (req, res) => {
 
     const { password: _, ...usuarioSinPassword } = usuario;
 
-    // El req no tiene los headers todavía porque es el login, así que pasamos los datos manuales:
     await prisma.registroActividad.create({
       data: {
         operadorId: usuario.id,
@@ -754,154 +1117,6 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor." });
   }
 });
-// ==================================================================
-// ======================== MÓDULO AUDITORÍA ========================
-// ==================================================================
-app.get("/api/auditoria", async (req, res) => {
-  const { fecha, operador, modulo } = req.query;
-
-  try {
-    const whereClause: any = { AND: [] };
-
-    // 1. Filtro por Fecha Exacta
-    if (fecha) {
-      // Como fechaHora guarda horas y minutos, buscamos entre las 00:00 y las 23:59 de ese día
-      const startOfDay = new Date(`${fecha}T00:00:00.000Z`);
-      const endOfDay = new Date(`${fecha}T23:59:59.999Z`);
-      whereClause.AND.push({
-        fechaHora: { gte: startOfDay, lte: endOfDay },
-      });
-    }
-
-    // 2. Filtro por Operador (Busca en DNI o Nombre)
-    if (operador) {
-      whereClause.AND.push({
-        OR: [
-          { operadorNombre: { contains: String(operador) } },
-          { operadorDoc: { contains: String(operador) } },
-        ],
-      });
-    }
-
-    // 3. Filtro por Módulo / Entidad Afectada
-    if (modulo) {
-      whereClause.AND.push({
-        entidadAfectada: { contains: String(modulo) },
-      });
-    }
-
-    const registros = await prisma.registroActividad.findMany({
-      where: whereClause.AND.length > 0 ? whereClause : undefined,
-      orderBy: { fechaHora: "desc" },
-    });
-
-    res.json(registros);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error al obtener la auditoría" });
-  }
-});
-
-// ==================================================================
-// ======================== MÓDULO CLIENTES =========================
-// ==================================================================
-
-// --- OBTENER CLIENTES ---
-app.get("/api/clientes", async (req, res) => {
-  try {
-    const clientes = await prisma.cliente.findMany({
-      orderBy: { razonSocial: "asc" },
-    });
-    // Ya NO enmascaramos la clave fiscal. Enviamos los datos crudos.
-    res.json(clientes);
-  } catch (error) {
-    res.status(500).json({ error: "Error al obtener clientes" });
-  }
-});
-
-// --- CREAR CLIENTE ---
-app.post("/api/clientes", async (req, res) => {
-  const { razonSocial, cuitEmpresa, cuitRepresentante, claveFiscal, domicilio, numero, telefono, email, jurisdiccion, condicionIva, idActividad } = req.body;
-  try {
-    const nuevoCliente = await prisma.cliente.create({
-      data: { razonSocial, cuitEmpresa, cuitRepresentante, claveFiscal, domicilio, numero, telefono, email, jurisdiccion, condicionIva, idActividad, activo: true },
-    });
-
-    await registrarActividad(req, "CREACIÓN", "Cliente", nuevoCliente.id, `Se registró el cliente: ${razonSocial}`);
-    res.status(201).json(nuevoCliente);
-  } catch (error: any) {
-    if (error.code === "P2002") return res.status(400).json({ error: "El CUIT ya está registrado." });
-    res.status(500).json({ error: "Error al crear cliente" });
-  }
-});
-
-// --- ACTUALIZAR CLIENTE ---
-app.put("/api/clientes/:id", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  // Agregamos 'numero' aquí 👇
-  const { razonSocial, cuitEmpresa, cuitRepresentante, claveFiscal, domicilio, numero, telefono, email, jurisdiccion, condicionIva, idActividad } = req.body;
-
-  try {
-    // Actualizamos TODOS los campos directamente, incluida la clave fiscal real y el numero
-    const dataToUpdate = { razonSocial, cuitEmpresa, cuitRepresentante, claveFiscal, domicilio, numero, telefono, email, jurisdiccion, condicionIva, idActividad };
-
-    const clienteActualizado = await prisma.cliente.update({
-      where: { id },
-      data: dataToUpdate,
-    });
-
-    await registrarActividad(req, "EDICIÓN", "Cliente", id, `Se editaron los datos del cliente: ${razonSocial}`);
-    res.json(clienteActualizado);
-  } catch (error: any) {
-    if (error.code === 'P2002') return res.status(400).json({ error: "El CUIT ya existe." });
-    res.status(500).json({ error: "Error al actualizar cliente" });
-  }
-});
-
-// --- ELIMINAR CLIENTE ---
-app.delete("/api/clientes/:id", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  try {
-    const inhabilitado = await prisma.cliente.update({
-      where: { id },
-      data: { activo: false, fechaEliminacion: new Date() },
-    });
-    await registrarActividad(req, "INHABILITACIÓN", "Cliente", id, `Cliente inhabilitado: ${inhabilitado.razonSocial}`);
-    res.json(inhabilitado);
-  } catch (error) {
-    res.status(500).json({ error: "Error al inhabilitar cliente" });
-  }
-});
-
-app.patch("/api/clientes/:id/restaurar", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  try {
-    const restaurado = await prisma.cliente.update({
-      where: { id },
-      data: { activo: true, fechaEliminacion: null },
-    });
-    await registrarActividad(req, "RESTAURACIÓN", "Cliente", id, `Cliente restaurado: ${restaurado.razonSocial}`);
-    res.json(restaurado);
-  } catch (error) {
-    res.status(500).json({ error: "Error al restaurar cliente" });
-  }
-});
-
-app.delete("/api/clientes/:id/forzar", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  try {
-    const clienteABorrar = await prisma.cliente.findUnique({ where: { id } });
-    if (!clienteABorrar) return res.status(404).json({ error: "Cliente no encontrado" });
-
-    await prisma.cliente.delete({ where: { id } });
-    await registrarActividad(req, "ELIMINACIÓN DEFINITIVA", "Cliente", id, `Se eliminó permanentemente al cliente: ${clienteABorrar.razonSocial}`);
-
-    res.json({ message: "Eliminado" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al eliminar definitivamente" });
-  }
-});
-
 
 // ==================================================================
 // ======================== LISTEN PUERTO ===========================

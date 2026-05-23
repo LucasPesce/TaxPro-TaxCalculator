@@ -18,7 +18,6 @@ export const UsuariosPage: React.FC = () => {
         handleUpdateUsuario, 
         handleDeleteUsuario, 
         handleRestoreUsuario, 
-        handleForceDeleteUsuario,
         // Variables nuevas para paginación
         totalUsuarios,
         currentPage,
@@ -133,9 +132,6 @@ export const UsuariosPage: React.FC = () => {
                                                 <Button variant="icon" onClick={() => handleRestoreUsuario(u.id)} title="Restaurar Usuario">
                                                     <FontAwesomeIcon icon={faRotateLeft} color="#2196F3" />
                                                 </Button>
-                                                <Button variant="icon" onClick={() => handleForceDeleteUsuario(u.id)} title="Eliminar Definitivamente">
-                                                    <FontAwesomeIcon icon={faTrash} color="#db0012" />
-                                                </Button>
                                             </>
                                         )}
                                     </td>
@@ -160,30 +156,6 @@ export const UsuariosPage: React.FC = () => {
                 itemsPerPage={ITEMS_PER_PAGE}
                 onPageChange={setCurrentPage}
             />
-
-            {usuariosEnPapelera.length > 0 && (
-                <div style={{ 
-                    marginTop: '8px', 
-                    padding: '16px 20px', 
-                    backgroundColor: 'color-mix(in srgb, var(--accent-color) 15%, transparent)',
-                    border: '1px solid var(--accent-color)', 
-                    borderRadius: '8px', 
-                    color: 'var(--accent-color)', 
-                    fontSize: '0.95rem'
-                }}>
-                    <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <FontAwesomeIcon icon={faExclamationCircle} /> 
-                        Aviso de Eliminación Programada
-                    </strong>
-                    <ul style={{ margin: 0, paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {usuariosEnPapelera.map(u => (
-                            <li key={u.id}>
-                                El usuario <strong>{u.username}</strong> ({u.apellido}, {u.nombre}) será eliminado definitivamente del sistema en <strong>{getDiasRestantes(u.fechaEliminacion)} días</strong>.
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
 
             <EditUsuarioModal
                 isOpen={isModalOpen}

@@ -1,6 +1,6 @@
 // src/pages/Auditoria/AuditoriaPage.tsx
 import React from 'react';
-import { useAuditoriaManager } from './hooks/useAuditoriaManager';
+import { useAuditoriaManager } from '../../hooks/useAuditoriaManager';
 import { AuditoriaFilters } from './components/AuditoriaFilters';
 import { Card } from '../../components/ui/Card/Card';
 import { Pagination } from '../../components/ui/Pagination/Pagination';
@@ -8,10 +8,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
 
 export const AuditoriaPage: React.FC = () => {
-    const { 
-        registros, totalRegistros, loading, sortConfig, 
-        currentPage, ITEMS_PER_PAGE, 
-        setCurrentPage, handleSort, fetchAuditoria 
+    const {
+        registros, totalRegistros, loading, sortConfig,
+        currentPage, ITEMS_PER_PAGE,
+        setCurrentPage, handleSort, fetchAuditoria
     } = useAuditoriaManager();
 
     const formatearFecha = (fechaISO: string) => {
@@ -30,8 +30,8 @@ export const AuditoriaPage: React.FC = () => {
 
     // Estilo para el encabezado ordenable
     const sortableHeaderStyle: React.CSSProperties = {
-        padding: '12px', 
-        cursor: 'pointer', 
+        padding: '12px',
+        cursor: 'pointer',
         userSelect: 'none',
         transition: 'background-color 0.2s'
     };
@@ -53,16 +53,16 @@ export const AuditoriaPage: React.FC = () => {
                             <thead style={{ backgroundColor: 'var(--background-color)' }}>
                                 <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted-color)' }}>
                                     <th style={sortableHeaderStyle} onClick={() => handleSort('fechaHora')}>
-                                        Fecha y Hora <FontAwesomeIcon icon={getSortIcon('fechaHora')} style={{ marginLeft: '4px' }}/>
+                                        Fecha y Hora <FontAwesomeIcon icon={getSortIcon('fechaHora')} style={{ marginLeft: '4px' }} />
                                     </th>
                                     <th style={sortableHeaderStyle} onClick={() => handleSort('operadorNombre')}>
-                                        Operador <FontAwesomeIcon icon={getSortIcon('operadorNombre')} style={{ marginLeft: '4px' }}/>
+                                        Operador <FontAwesomeIcon icon={getSortIcon('operadorNombre')} style={{ marginLeft: '4px' }} />
                                     </th>
                                     <th style={sortableHeaderStyle} onClick={() => handleSort('accion')}>
-                                        Operación <FontAwesomeIcon icon={getSortIcon('accion')} style={{ marginLeft: '4px' }}/>
+                                        Operación <FontAwesomeIcon icon={getSortIcon('accion')} style={{ marginLeft: '4px' }} />
                                     </th>
                                     <th style={sortableHeaderStyle} onClick={() => handleSort('entidadAfectada')}>
-                                        Módulo Afectado <FontAwesomeIcon icon={getSortIcon('entidadAfectada')} style={{ marginLeft: '4px' }}/>
+                                        Módulo Afectado <FontAwesomeIcon icon={getSortIcon('entidadAfectada')} style={{ marginLeft: '4px' }} />
                                     </th>
                                     <th style={{ padding: '12px' }}>Detalles</th>
                                 </tr>
@@ -70,24 +70,41 @@ export const AuditoriaPage: React.FC = () => {
                             <tbody>
                                 {registros.map(reg => {
                                     // Evaluamos si es una operación crítica (Borrado/Inhabilitación) para darle color de acento
-                                    const esCritico = reg.accion.includes('ELIMINACIÓN') || reg.accion.includes('INHABILITACIÓN');
-                                    
+
                                     return (
                                         <tr key={reg.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                             <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{formatearFecha(reg.fechaHora)}</td>
                                             <td style={{ padding: '12px' }}>
-                                                <strong>{reg.operadorNombre}</strong><br/>
+                                                <strong>{reg.operadorNombre}</strong><br />
                                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted-color)' }}>DNI: {reg.operadorDoc}</span>
                                             </td>
-                                            <td style={{ 
-                                                padding: '12px', 
-                                                fontWeight: '600',                                               
+                                            <td style={{
+                                                padding: '12px',
+                                                fontWeight: '600',
                                             }}>
                                                 {reg.accion}
                                             </td>
                                             <td style={{ padding: '12px' }}>{reg.entidadAfectada}</td>
-                                            <td style={{ padding: '12px' }}>{reg.detalles}</td>
-                                        </tr>
+                                            <td style={{ padding: '12px' }}>
+                                                <div style={{ marginBottom: '4px' }}>{reg.detalles}</div>
+
+                                                {/* Si existen datos anteriores, dibujamos el menú desplegable */}
+                                                {(reg as any).datosAnteriores && (
+                                                    <details style={{ marginTop: '8px', fontSize: '0.8rem', cursor: 'pointer' }}>
+                                                        <summary style={{ color: 'var(--primary-color)', fontWeight: '600' }}>Ver datos modificados</summary>
+                                                        <div style={{ display: 'flex', gap: '12px', marginTop: '8px', cursor: 'text' }}>
+                                                            <pre style={{ flex: 1, backgroundColor: 'rgba(219, 0, 18, 0.05)', border: '1px solid rgba(219, 0, 18, 0.2)', padding: '8px', borderRadius: '4px', overflowX: 'auto', color: '#db0012', margin: 0 }}>
+                                                                <strong style={{ color: '#000' }}>ANTES:</strong><br /><br />
+                                                                {JSON.stringify(JSON.parse((reg as any).datosAnteriores), null, 2)}
+                                                            </pre>
+                                                            <pre style={{ flex: 1, backgroundColor: 'rgba(33, 150, 243, 0.05)', border: '1px solid rgba(33, 150, 243, 0.2)', padding: '8px', borderRadius: '4px', overflowX: 'auto', color: '#2196F3', margin: 0 }}>
+                                                                <strong style={{ color: '#000' }}>DESPUÉS:</strong><br /><br />
+                                                                {JSON.stringify(JSON.parse((reg as any).datosNuevos), null, 2)}
+                                                            </pre>
+                                                        </div>
+                                                    </details>
+                                                )}
+                                            </td>                                        </tr>
                                     );
                                 })}
                                 {registros.length === 0 && (

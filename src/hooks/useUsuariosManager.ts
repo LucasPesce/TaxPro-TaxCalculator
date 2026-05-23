@@ -117,7 +117,7 @@ export const useUsuariosManager = () => {
     };
 
     const handleDeleteUsuario = async (id: number) => {
-        if (!window.confirm("¿Seguro que deseas inhabilitar este usuario? (Quedará en papelera por 30 días)")) return;
+        if (!window.confirm("¿Seguro que deseas inhabilitar este usuario?")) return;
         try {
             const res = await fetch(`/api/usuarios/${id}`, { 
                 method: 'DELETE',
@@ -142,23 +142,6 @@ export const useUsuariosManager = () => {
         }
     };
 
-    const handleForceDeleteUsuario = async (id: number) => {
-        if (!window.confirm("⚠️ ADVERTENCIA: Esta acción eliminará el usuario permanentemente y no se puede deshacer. ¿Continuar?")) return;
-        try {
-            const res = await fetch(`/api/usuarios/${id}/forzar`, { 
-                method: 'DELETE',
-                headers: getHeaders() 
-            });
-            if (res.ok) fetchUsuarios();
-            else {
-                 const err = await res.json();
-                 alert(err.error || "Error al eliminar permanentemente");
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
     return {
         usuarios: paginatedUsuarios, // Devolvemos la lista recortada para la página actual
         totalUsuarios: usuarios.length, // Enviamos el total para que la paginación sepa cuántos botones dibujar
@@ -171,6 +154,5 @@ export const useUsuariosManager = () => {
         handleUpdateUsuario,
         handleDeleteUsuario,
         handleRestoreUsuario,
-        handleForceDeleteUsuario
     };
 };
