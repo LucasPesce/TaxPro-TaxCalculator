@@ -1,36 +1,35 @@
+// src/pages/Proveedores/hooks/useProveedoresManager.ts
 import { useState, useEffect, useMemo } from 'react';
-import { type Cliente } from '../../src/types'; 
+import { type Proveedor } from '../types'; // Ajusta la ruta a tu types.ts
 
-type SortKey = keyof Cliente;
+type SortKey = keyof Proveedor;
 type SortDirection = "ascending" | "descending";
 
-export const useClientesManager = () => {
-    const [clientes, setClientes] = useState<Cliente[]>([]);
+export const useProveedoresManager = () => {
+    const [proveedores, setProveedores] = useState<Proveedor[]>([]);
     
-    // --- ESTADO PARA ORDENAMIENTO ---
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({
         key: 'razonSocial',
         direction: 'ascending',
     });
 
-    // --- ESTADO PARA PAGINACIÓN ---
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 5;
 
-    const fetchClientes = async () => {
+    const fetchProveedores = async () => {
         try {
-            const res = await fetch('/api/clientes');
+            const res = await fetch('/api/proveedores');
             if (res.ok) {
                 const data = await res.json();
-                setClientes(data);
+                setProveedores(data);
             }
         } catch (error) {
-            console.error("Error fetching clientes:", error);
+            console.error("Error fetching proveedores:", error);
         }
     };
 
     useEffect(() => {
-        fetchClientes();
+        fetchProveedores();
     }, []);
 
     const getHeaders = () => {
@@ -53,9 +52,8 @@ export const useClientesManager = () => {
         setSortConfig({ key, direction });
     };
 
-    const sortedClientes = useMemo(() => {
-        const sortableItems = [...clientes];
-        
+    const sortedProveedores = useMemo(() => {
+        const sortableItems = [...proveedores];
         sortableItems.sort((a, b) => {
             let valA = a[sortConfig.key];
             let valB = b[sortConfig.key];
@@ -71,89 +69,78 @@ export const useClientesManager = () => {
 
             if ((valA as any) < (valB as any)) return sortConfig.direction === "ascending" ? -1 : 1;
             if ((valA as any) > (valB as any)) return sortConfig.direction === "ascending" ? 1 : -1;
-            
             return 0;
         });
         return sortableItems;
-    }, [clientes, sortConfig]);
+    }, [proveedores, sortConfig]);
 
-    // --- APLICAR PAGINACIÓN ---
-    const paginatedClientes = useMemo(() => {
+    const paginatedProveedores = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return sortedClientes.slice(start, start + ITEMS_PER_PAGE);
-    }, [sortedClientes, currentPage]);
+        return sortedProveedores.slice(start, start + ITEMS_PER_PAGE);
+    }, [sortedProveedores, currentPage]);
 
-    const handleCreateCliente = async (clienteData: Partial<Cliente>) => {
+    const handleCreateProveedor = async (data: Partial<Proveedor>) => {
         try {
-            const res = await fetch('/api/clientes', {
+            const res = await fetch('/api/proveedores', {
                 method: 'POST',
                 headers: getHeaders(), 
-                body: JSON.stringify(clienteData)
+                body: JSON.stringify(data)
             });
-            if (res.ok) fetchClientes();
+            if (res.ok) fetchProveedores();
             else {
                 const err = await res.json();
-                alert(err.error || "Error al crear cliente");
+                alert(err.error || "Error al crear proveedor");
             }
         } catch (error) {
             console.error(error);
         }
     };
 
-    const handleUpdateCliente = async (id: number, clienteData: Partial<Cliente>) => {
+    const handleUpdateProveedor = async (id: number, data: Partial<Proveedor>) => {
         try {
-            const res = await fetch(`/api/clientes/${id}`, {
+            const res = await fetch(`/api/proveedores/${id}`, {
                 method: 'PUT',
                 headers: getHeaders(),
-                body: JSON.stringify(clienteData)
+                body: JSON.stringify(data)
             });
-            if (res.ok) fetchClientes();
+            if (res.ok) fetchProveedores();
             else {
                 const err = await res.json();
-                alert(err.error || "Error al actualizar cliente");
+                alert(err.error || "Error al actualizar proveedor");
             }
         } catch (error) {
             console.error(error);
         }
     };
 
-    const handleDeleteCliente = async (id: number) => {
-        if (!window.confirm("¿Seguro que deseas inhabilitar este cliente?")) return;
+    const handleDeleteProveedor = async (id: number) => {
+        if (!window.confirm("¿Seguro que deseas inhabilitar este proveedor?")) return;
         try {
-            const res = await fetch(`/api/clientes/${id}`, { 
-                method: 'DELETE',
-                headers: getHeaders()
-            });
-            if (res.ok) fetchClientes();
-        } catch (error) {
-            console.error(error);
-        }
+            const res = await fetch(`/api/proveedores/${id}`, { method: 'DELETE', headers: getHeaders() });
+            if (res.ok) fetchProveedores();
+        } catch (error) { console.error(error); }
     };
 
-    const handleRestoreCliente = async (id: number) => {
-        if (!window.confirm("¿Restaurar este cliente y habilitarlo nuevamente?")) return;
+    const handleRestoreProveedor = async (id: number) => {
+        if (!window.confirm("¿Restaurar este proveedor y habilitarlo nuevamente?")) return;
         try {
-            const res = await fetch(`/api/clientes/${id}/restaurar`, { 
-                method: 'PATCH',
-                headers: getHeaders()
-            });
-            if (res.ok) fetchClientes();
-        } catch (error) {
-            console.error(error);
-        }
+            const res = await fetch(`/api/proveedores/${id}/restaurar`, { method: 'PATCH', headers: getHeaders() });
+            if (res.ok) fetchProveedores();
+        } catch (error) { console.error(error); }
     };
+
 
     return {
-        clientes: paginatedClientes, // Devuelve lista cortada
-        totalClientes: clientes.length, // Devuelve cantidad total
+        proveedores: paginatedProveedores,
+        totalProveedores: proveedores.length,
         currentPage,
         ITEMS_PER_PAGE,
         setCurrentPage,
         sortConfig,
         handleSort,
-        handleCreateCliente,
-        handleUpdateCliente,
-        handleDeleteCliente,
-        handleRestoreCliente,
+        handleCreateProveedor,
+        handleUpdateProveedor,
+        handleDeleteProveedor,
+        handleRestoreProveedor,
     };
 };

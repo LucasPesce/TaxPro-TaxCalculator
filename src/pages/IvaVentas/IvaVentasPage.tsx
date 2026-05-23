@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import './IvaVentas.css';
 import { type Invoice } from '../../types';
-import { useInvoicesManager } from './hooks/useInvoicesManager';
-import { FiltersSection } from './components/FiltersSection/FiltersSection';
+import { useInvoicesManager } from '../../hooks/useInvoicesManager';
+import { FiltersSection } from '../../components/ui/FiltersSection/FiltersSection';
 import { DashboardSection } from './components/DashboardSection/DashboardSection';
 import { InvoicesTable } from './components/InvoicesTable/InvoicesTable';
 import { EditInvoiceModal } from './components/EditInvoiceModal/EditInvoiceModal';
@@ -48,10 +48,11 @@ export const IvaVentasPage: React.FC = () => {
         <div className="iva-ventas-page">
             <h1 className="page-title">IVA Ventas</h1>
 
-            <FiltersSection 
-                modulo="ventas" // <--- NUEVO
-                onFileImport={handleFileImport} 
+            <FiltersSection
+                modulo="ventas"
+                onFileImport={handleFileImport}
                 onSearch={handleSearch}
+                hasData={allInvoices.length > 0} 
             />
             <DashboardSection invoices={allInvoices} />
 

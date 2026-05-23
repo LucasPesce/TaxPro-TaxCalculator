@@ -75,7 +75,7 @@ model Usuario {
   updatedAt DateTime @updatedAt
 }
 
-// --- NUEVO: MODELO DE AUDITORÍA GENERAL / ACTIVIDAD ---
+// --- MODELO DE AUDITORÍA GENERAL / ACTIVIDAD ---
 model RegistroActividad {
   id               Int      @id @default(autoincrement())
   fechaHora        DateTime @default(now()) 
@@ -88,6 +88,9 @@ model RegistroActividad {
   entidadAfectada  String   
   entidadId        Int      
   detalles         String?  
+
+  datosAnteriores  String?  
+  datosNuevos      String?  
 }
 
 // --- MODELO DE CLIENTES ---
@@ -110,4 +113,25 @@ model Cliente {
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+}
+
+// --- MODELO DE PROVEEDORES ---
+model Proveedor {
+  id               Int       @id @default(autoincrement())
+  razonSocial      String
+  cuitProveedor    String    @unique
+  domicilio        String
+  numero           String
+  telefono         String
+  email            String
+  jurisdiccion     String
+  condicionIva     String
+  idActividad      String
+  idTipoCompra     String    // Campo específico de proveedores
+  
+  activo           Boolean   @default(true) 
+  fechaEliminacion DateTime? 
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }

@@ -1,0 +1,71 @@
+/* src/pages/IvaVentas/components/FiltersSection/FiltersSection.module.css */
+
+.filtersContainer {
+    display: flex;
+    justify-content: center;
+}
+
+.filtersGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 20px;
+    align-items: flex-end; /* Alinea los elementos al final */
+    width: 100%;
+    max-width: 900px;
+}
+
+/* Wrapper para que el botón ocupe todo el espacio y se alinee correctamente */
+.searchButtonWrapper {
+    display: flex;
+}
+.searchButtonWrapper > button {
+    width: 100%; /* El botón se estira */
+}
+
+.sectionDivider {
+    margin: 24px 0;
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+.importSection {
+    display: flex;
+    width: max-content;
+    margin: 0 auto;
+    align-items: center;
+    gap: 24px;
+}
+
+.hiddenFileInput {
+    display: none;
+}
+
+.fileName {
+    color: var(--text-muted-color);
+    font-style: italic;
+}
+
+.fileInputLabel {
+  /* Copiamos las propiedades BASE de nuestro componente Button */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+  
+  /* Aplicamos los estilos de la VARIANTE 'fileSelect' */
+  background-color: transparent;
+  border: 1.5px solid var(--primary-color);
+  color: var(--primary-color);
+}
+
+.fileInputLabel:hover {
+  background-color: var(--primary-color);
+  color: white;
+}

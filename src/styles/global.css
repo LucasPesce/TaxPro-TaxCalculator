@@ -14,7 +14,6 @@
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 88px;
   --header-height: 80px;
-
 }
 
 [data-theme="dark"] {
@@ -23,11 +22,10 @@
   --background-color: #121832;
   --sidebar-bg-color: #1b2240;
   --text-color: #cde0ff;
-  --text-muted-color: rgb(147, 162, 183);
+  --text-muted-color: rgb(147, 162, 183); 
   --card-bg-color: #1b2240;
   --border-color: #2a3255;
   --theme-btn: rgb(245, 243, 241);
-
 }
 
 html,

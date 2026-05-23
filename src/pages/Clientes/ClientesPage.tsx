@@ -22,7 +22,6 @@ export const ClientesPage: React.FC = () => {
         handleUpdateCliente, 
         handleDeleteCliente, 
         handleRestoreCliente, 
-        handleForceDeleteCliente 
     } = useClientesManager();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -104,7 +103,6 @@ export const ClientesPage: React.FC = () => {
                                         ) : (
                                             <>
                                                 <Button variant="icon" onClick={() => handleRestoreCliente(c.id)}><FontAwesomeIcon icon={faRotateLeft} color="#2196F3" /></Button>
-                                                <Button variant="icon" onClick={() => handleForceDeleteCliente(c.id)}><FontAwesomeIcon icon={faTrash} color="#db0012" /></Button>
                                             </>
                                         )}
                                     </td>
@@ -122,31 +120,6 @@ export const ClientesPage: React.FC = () => {
                 itemsPerPage={ITEMS_PER_PAGE}
                 onPageChange={setCurrentPage}
             />
-
-            {/* --- CARTEL DE ADVERTENCIA PARA CLIENTES --- */}
-            {clientesEnPapelera.length > 0 && (
-                <div style={{ 
-                    marginTop: '8px', 
-                    padding: '16px 20px', 
-                    backgroundColor: 'color-mix(in srgb, var(--primary-color) 15%, transparent)',
-                    border: '1px solid var(--primary-color)', 
-                    borderRadius: '8px', 
-                    color: 'var(--primary-color)', 
-                    fontSize: '0.95rem'
-                }}>
-                    <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <FontAwesomeIcon icon={faExclamationCircle} /> 
-                        Aviso de Eliminación Programada
-                    </strong>
-                    <ul style={{ margin: 0, paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {clientesEnPapelera.map(c => (
-                            <li key={c.id}>
-                                El cliente <strong>{c.razonSocial}</strong> (CUIT: {c.cuitEmpresa}) será eliminado definitivamente del sistema en <strong>{getDiasRestantes(c.fechaEliminacion)} días</strong>.
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
 
             <EditClienteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} cliente={selectedCliente} onSave={handleSave} />
         </div>

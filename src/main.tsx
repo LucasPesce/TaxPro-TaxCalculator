@@ -12,6 +12,8 @@ import { LoginPage } from './pages/Login/LoginPage';
 import { AuditoriaPage } from './pages/Auditoria/AuditoriaPage.tsx';
 import { ClientesPage } from './pages/Clientes/ClientesPage.tsx';
 import { checkAccess, getCurrentUser, type Modulo } from './utils/auth';
+import { ProveedoresPage } from './pages/Proveedores/ProveedoresPage'; // Asegúrate de haberla creado
+
 
 // COMPONENTE PARA PROTEGER RUTAS
 const ProtectedRoute = ({ moduloAControlar }: { moduloAControlar: Modulo }) => {
@@ -37,7 +39,8 @@ const router = createBrowserRouter([
       // Protegemos Operaciones (Ventas y Compras)
       {
         element: <ProtectedRoute moduloAControlar="Operaciones" />, children: [
-          { path: "clientes", element: <ClientesPage /> }, // <-- AQUI
+          { path: "clientes", element: <ClientesPage /> }, 
+          { path: "proveedores", element: <ProveedoresPage /> },
           { path: "iva-ventas", element: <IvaVentasPage /> },
           { path: "iva-compras", element: <IvaComprasPage /> },
         ]

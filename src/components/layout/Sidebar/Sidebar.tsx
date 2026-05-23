@@ -3,9 +3,9 @@ import React from 'react';
 import './Sidebar.css';
 import logoImg from '../../../assets/images/marca.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft  } from '@fortawesome/free-solid-svg-icons';
 import { ThemeToggle, CollapsedThemeToggle } from '../../ui/ThemeToggle/ThemeToggle';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { checkAccess, getCurrentUser } from '../../../utils/auth';
 
 //================= DEFINICIÓN DE TIPOS (PROPS) =================
@@ -18,17 +18,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
 
     //================= LÓGICA DEL COMPONENTE =================
-    const navigate = useNavigate();
 
     const sidebarClassName = `sidebar ${isCollapsed ? 'collapsed' : ''}`;
 
     const currentUser = getCurrentUser();
     const rol = currentUser?.rol;
 
-    const handleLogout = () => {
-        localStorage.removeItem('usuarioActual');
-        navigate('/login', { replace: true });
-    };
 
     //================= RENDERIZADO DEL COMPONENTE (JSX) =================
     return (
@@ -74,7 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
                             <Link to="/app/clientes"><i className="fa-solid fa-users"></i><span>Clientes</span></Link>
                         </li>
 
-                        <li className="menu-item"><a href="#"><i className="fa-solid fa-dolly"></i><span>Proveedores</span></a></li>
+                        <li className="menu-item"><Link to="/app/proveedores"><i className="fa-solid fa-dolly"></i><span>Proveedores</span></Link></li>
                         <li className="menu-item"><Link to="/app/iva-ventas"><i className="fa-solid fa-receipt"></i><span>IVA Ventas</span></Link></li>
                         <li className="menu-item"><Link to="/app/iva-compras"><i className="fa-solid fa-file-invoice-dollar"></i><span>IVA Compras</span></Link></li>
                         <li className="menu-item"><a href="#"><i className="fa-solid fa-landmark"></i><span>IIBB</span></a></li>
@@ -84,16 +79,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
                 )}
             </ul>
 
-            <div className="sidebar-actions">
-                <ul className="menu-options">
-                    <li className="menu-item">
-                        <button onClick={handleLogout} className="logout-btn">
-                            <FontAwesomeIcon icon={faRightFromBracket} />
-                            <span>Cerrar Sesión</span>
-                        </button>
-                    </li>
-                </ul>
-            </div>
+            
             <div className="sidebar-footer">
                 {isCollapsed ? <CollapsedThemeToggle /> : <ThemeToggle />}
             </div>
