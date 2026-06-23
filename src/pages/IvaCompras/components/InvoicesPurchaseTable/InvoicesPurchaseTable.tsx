@@ -9,7 +9,7 @@ import styles from './InvoicesPurchaseTable.module.css';
 
 interface InvoicesPurchaseTableProps {
     invoices: PurchaseInvoice[];
-    onSort: (key: any) => void; 
+    onSort: (key: any) => void;
     onUpdate: (invoice: PurchaseInvoice) => void;
     onEdit: (invoice: PurchaseInvoice) => void;
     sortConfig: { key: string | number | symbol; direction: 'ascending' | 'descending' };
@@ -18,23 +18,8 @@ interface InvoicesPurchaseTableProps {
 const formatMoney = (val: number) =>
     val ? `$ ${val.toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : '-';
 
-const CLASSIFICATION_OPTIONS = [
-    "Mercadería",
-    "Servicios",
-    "Bienes de Uso",
-    "Locación",
-    "Otros Gastos"
-];
 
 export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ invoices, onSort, onUpdate, onEdit, sortConfig }) => {
-
-    const handleClassificationChange = (invoice: PurchaseInvoice, newClass: string) => {
-        // Creamos una copia actualizada y la enviamos al padre para que la guarde
-        const updatedInvoice = { ...invoice, clasificacion: newClass };
-        onUpdate(updatedInvoice);
-    };
-
-
     // Función para mostrar el ícono correcto
     const getSortIcon = (columnKey: any) => {
         if (sortConfig.key !== columnKey) return faSort;
@@ -45,31 +30,32 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
     return (
         <Card title="Registro de Compras">
             <div className={styles.tableWrapper}>
-                <table className={styles.table}>
+<table className={styles.table} style={{ textAlign: 'center', minWidth: '1800px' }}>
                     <thead>
-                        <tr>
-                            <th>Proveedor</th>
-                            <th>Cond. IVA</th>
-                            <th>CUIT</th>
-                            <th>Clasificación</th>
-                            <th onClick={() => onSort('fechaImputacion')} className={styles.sortableHeader}>
+                        <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted-color)' }}>
+                            <th style={{ padding: '10px 12px', textAlign: 'left' }}>Proveedor</th>
+                            <th>Tipo Doc.</th>
+                            <th>CUIT Emisor</th>
+                            <th onClick={() => onSort('fechaImputacion')} style={{ padding: '10px 12px', cursor: 'pointer', userSelect: 'none' }}>
                                 F. Imputación <FontAwesomeIcon icon={getSortIcon('fechaImputacion')} />
-                            </th>                            <th>Comp.</th>
-                            <th>Número</th>
-                            <th>Gravado</th>
-                            <th>Exento</th>
-                            <th>Perc. IVA</th>
-                            <th>Perc. IIBB</th>
-                            <th>Perc. Mun.</th>
-                            <th>Ganancias</th>
-                            <th>IVA 10.5%</th>
-                            <th>IVA 21%</th>
-                            <th>IVA 27%</th>
-                            <th>Otras Ret.</th>
-                            <th onClick={() => onSort('total')} className={styles.sortableHeader}>
+                            </th>                            
+                            <th>F. Emisión</th>
+                            <th>Tipo Comp.</th>
+                            <th>Pto Venta</th>
+                            <th>Nro Desde</th>
+                            <th>Nro Hasta</th>
+                            <th>Cód. Autoriz.</th>
+                            <th>T. Cambio</th>
+                            <th>Moneda</th>
+                            <th>Imp. Neto Gravado</th>
+                            <th>Imp. Neto No Grav.</th>
+                            <th>Imp. Op. Exentas</th>
+                            <th>Otros Tributos</th>
+                            <th>IVA (Total)</th>
+                            <th onClick={() => onSort('total')} style={{ padding: '10px 12px', cursor: 'pointer', userSelect: 'none' }}>
                                 Total <FontAwesomeIcon icon={getSortIcon('total')} />
                             </th>
-                            <th onClick={() => onSort('controlIva')} className={styles.sortableHeader}>
+                            <th onClick={() => onSort('controlIva')} style={{ padding: '10px 12px', cursor: 'pointer', userSelect: 'none' }}>
                                 Control IVA <FontAwesomeIcon icon={getSortIcon('controlIva')} />
                             </th>
                             <th></th>
@@ -78,39 +64,26 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
                     <tbody>
                         {invoices.length > 0 ? (
                             invoices.map((inv) => (
-                                <tr key={inv.id}>
-                                    <td>{inv.proveedor}</td>
-                                    <td>{inv.condicionIva}</td>
+                                <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                    <td style={{ padding: '10px 12px', textAlign: 'left' }}><strong>{inv.proveedor}</strong></td>
+                                    <td>{inv.tipoDocEmisor}</td>
                                     <td>{inv.cuitProveedor}</td>
-
-                                    {/* Selector de Clasificación */}
-                                    <td className={styles.selectCell}>
-                                        <select
-                                            className={styles.classificationSelect}
-                                            value={inv.clasificacion || "Mercadería"}
-                                            onChange={(e) => handleClassificationChange(inv, e.target.value)}
-                                            title="Clasificación del gasto">
-                                            {CLASSIFICATION_OPTIONS.map(opt => (
-                                                <option key={opt} value={opt}>{opt}</option>
-                                            ))}
-                                        </select>
-                                    </td>
-
                                     <td>{inv.fechaImputacion}</td>
-                                    <td>{inv.doc}</td>
-                                    <td>{inv.nro}</td>
+                                    <td>{inv.fechaEmision}</td>
+                                    <td>{inv.tipoComprobante}</td>
+                                    <td>{inv.puntoVenta}</td>
+                                    <td>{inv.numeroDesde}</td>
+                                    <td>{inv.numeroHasta}</td>
+                                    <td style={{ fontFamily: 'monospace' }}>{inv.codAutorizacion || '-'}</td>
+                                    <td>{inv.tipoCambio}</td>
+                                    <td>{inv.moneda}</td>
 
-                                    {/* Importes */}
+                                    {/* Importes oficiales */}
                                     <td>{formatMoney(inv.montoGravado)}</td>
-                                    <td>{formatMoney(inv.exento)}</td>
-                                    <td>{formatMoney(inv.percIva)}</td>
-                                    <td>{formatMoney(inv.percIIBB)}</td>
-                                    <td>{formatMoney(inv.percMun)}</td>
-                                    <td>{formatMoney(inv.ganancias)}</td>
-                                    <td>{formatMoney(inv.iva27)}</td>
-                                    <td>{formatMoney(inv.iva21)}</td>
-                                    <td>{formatMoney(inv.iva105)}</td>
-                                    <td>{formatMoney(inv.otrasRetenciones)}</td>
+                                    <td>{formatMoney(inv.exento - (inv.exento && inv.netoNoGravado ? inv.netoNoGravado : 0))}</td> {/* Exento puro */}
+                                    <td>{formatMoney(inv.netoNoGravado)}</td>
+                                    <td>{formatMoney(inv.otrosTributos)}</td>
+                                    <td>{formatMoney(inv.iva)}</td>
 
                                     <td className={styles.totalCell}>{formatMoney(inv.total)}</td>
                                     <td><StatusBadge status={inv.controlIva} /></td>
@@ -129,8 +102,8 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={20} className={styles.emptyMessage}>
-                                    No hay comprobantes de compra cargados.
+                                <td colSpan={21} className={styles.emptyMessage}>
+                                    No hay comprobantes de compra cargados en este periodo.
                                 </td>
                             </tr>
                         )}

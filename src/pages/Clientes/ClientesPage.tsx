@@ -6,22 +6,22 @@ import { Card } from '../../components/ui/Card/Card';
 import { StatusBadge } from '../../components/ui/StatusBadge/StatusBadge';
 import { Pagination } from '../../components/ui/Pagination/Pagination';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faPencil, faTrash, faRotateLeft, faSort, faSortUp, faSortDown, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faPencil, faTrash, faRotateLeft, faSort, faSortUp, faSortDown, } from '@fortawesome/free-solid-svg-icons';
 import { type Cliente } from '../../types';
 
 export const ClientesPage: React.FC = () => {
-    const { 
-        clientes, 
-        totalClientes, 
-        currentPage, 
-        ITEMS_PER_PAGE, 
-        setCurrentPage, 
-        sortConfig, 
-        handleSort, 
-        handleCreateCliente, 
-        handleUpdateCliente, 
-        handleDeleteCliente, 
-        handleRestoreCliente, 
+    const {
+        clientes,
+        totalClientes,
+        currentPage,
+        ITEMS_PER_PAGE,
+        setCurrentPage,
+        sortConfig,
+        handleSort,
+        handleCreateCliente,
+        handleUpdateCliente,
+        handleDeleteCliente,
+        handleRestoreCliente,
     } = useClientesManager();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,7 +63,7 @@ export const ClientesPage: React.FC = () => {
 
             <Card title="Directorio de Clientes">
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '0.85rem' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted-color)' }}>
                                 <th style={headerStyle} onClick={() => handleSort('cuitEmpresa')}>CUIT <FontAwesomeIcon icon={getSortIcon('cuitEmpresa')} /></th>
@@ -76,6 +76,7 @@ export const ClientesPage: React.FC = () => {
                                 <th style={headerStyle}>Email</th>
                                 <th style={headerStyle}>Jurisdicción</th>
                                 <th style={headerStyle}>Cond. IVA</th>
+                                <th style={headerStyle} onClick={() => handleSort('pyme')}>PyME <FontAwesomeIcon icon={getSortIcon('pyme')} /></th>
                                 <th style={headerStyle}>Actividad</th>
                                 <th style={headerStyle} onClick={() => handleSort('activo')}>Estado <FontAwesomeIcon icon={getSortIcon('activo')} /></th>
                                 <th style={{ padding: '10px 12px', textAlign: 'center' }}>Acciones</th>
@@ -94,7 +95,9 @@ export const ClientesPage: React.FC = () => {
                                     <td style={{ padding: '10px 12px' }}>{c.email}</td>
                                     <td style={{ padding: '10px 12px' }}>{c.jurisdiccion}</td>
                                     <td style={{ padding: '10px 12px' }}>{c.condicionIva}</td>
+                                    <td style={{ padding: '10px 12px', fontWeight: 'bold', color: c.pyme ? '#2196F3' : 'inherit' }}> {c.pyme ? 'Sí' : 'No'}</td>
                                     <td style={{ padding: '10px 12px' }}>{c.idActividad}</td>
+
                                     <td style={{ padding: '10px 12px' }}><StatusBadge status={c.activo ? 'Habilitado' : 'Inhabilitado'} /></td>
                                     <td style={{ padding: '10px 12px', display: 'flex', justifyContent: 'center', gap: '4px' }}>
                                         <Button variant="icon" onClick={() => { setSelectedCliente(c); setIsModalOpen(true); }}><FontAwesomeIcon icon={faPencil} /></Button>

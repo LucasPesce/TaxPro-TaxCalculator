@@ -9,54 +9,84 @@ datasource db {
 
 // --- MODELO DE VENTAS ---
 model FacturaVenta {
-  id              Int    @id @default(autoincrement())
-  cuitCliente     String
-  nombreEmpresa   String
-  cliente         String
-  condicionIva    String
-  tipoDocumento   String
-  numeroDocumento Float
-  fecha           String
-  numeroFactura   String
-  montoGravado    Float
-  iva21           Float
-  percIIBB        Float
-  percMun         Float
-  total           Float
-  provincia       String
+  id                      Int    @id @default(autoincrement())
+  
+  // Datos internos de nuestro sistema
+  cuitEmpresa             String // CUIT del cliente del estudio que hace la venta
+  nombreEmpresa           String
+  
+  // Datos oficiales de AFIP
+  fecha                   String // Fecha de Emisión
+  tipoComprobante         String
+  puntoVenta              String
+  numeroDesde             String
+  numeroHasta             String
+  numeroFactura           String // Concatenado: 0005-00000001
+  codAutorizacion         String
+  tipoDocReceptor         String
+  nroDocReceptor          String
+  denominacionReceptor    String
+  tipoCambio              Float  @default(1)
+  moneda                  String @default("PES")
+  
+  // Importes
+  netoGravado0            Float  @default(0)
+  iva25                   Float  @default(0)
+  netoGravado25           Float  @default(0)
+  iva5                    Float  @default(0)
+  netoGravado5            Float  @default(0)
+  iva105                  Float  @default(0)
+  netoGravado105          Float  @default(0)
+  iva21                   Float  @default(0)
+  netoGravado21           Float  @default(0)
+  iva27                   Float  @default(0)
+  netoGravado27           Float  @default(0)
+  montoGravadoTotal       Float  @default(0)
+  netoNoGravado           Float  @default(0)
+  operacionesExentas      Float  @default(0)
+  otrosTributos           Float  @default(0)
+  totalIva                Float  @default(0)
+  total                   Float  @default(0)
 }
 
 // --- MODELO DE COMPRAS ---
 model FacturaCompra {
-  id            Int    @id @default(autoincrement())
-  cuitEmpresa   String
-  nombreEmpresa String
+  id                  Int       @id @default(autoincrement())
+  
+  // Datos internos
+  cuitEmpresa         String
+  nombreEmpresa       String
+  fechaImputacion     String    // Usada para el periodo de liquidación
+  provincia           String    @default("Córdoba")
+  jurisdiccion        String    @default("Córdoba")
 
-  proveedor     String
-  cuitProveedor String
-  condicionIva  String
-  tipoDocumento String
-  numeroFactura String
+  // Datos oficiales AFIP
+  fechaEmision        String
+  tipoComprobante     String
+  puntoVenta          String
+  numeroDesde         String
+  numeroHasta         String
+  numeroFactura       String    // Concatenado: 0007-00023449
+  codAutorizacion     String
+  tipoDocEmisor       String
+  cuitProveedor       String    // Nro. Doc. Emisor (CUIT Proveedor)
+  proveedor           String    // Denominación Emisor
+  tipoCambio          Float     @default(1)
+  moneda              String    @default("PES")
+  
+  // Importes
+  montoGravado        Float     @default(0) // Imp. Neto Gravado
+  netoNoGravado       Float     @default(0) // Imp. Neto No Gravado
+  exento              Float     @default(0) // Imp. Op. Exentas
+  otrosTributos       Float     @default(0) // Otros Tributos
+  iva                 Float     @default(0) // IVA (Total)
+  total               Float     @default(0) // Imp. Total
 
-  fechaEmision    String
-  fechaImputacion String
+  activo              Boolean   @default(true)
+  fechaEliminacion    DateTime?
 
-  provincia    String
-  jurisdiccion String
-
-  clasificacion String
-
-  montoGravado     Float @default(0)
-  exento           Float @default(0)
-  percIva          Float @default(0)
-  percIIBB         Float @default(0)
-  percMun          Float @default(0)
-  ganancias        Float @default(0)
-  iva27            Float @default(0)
-  iva21            Float @default(0)
-  iva105           Float @default(0)
-  otrasRetenciones Float @default(0)
-  total            Float @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 // --- MODELO DE USUARIOS ---
@@ -107,7 +137,8 @@ model Cliente {
   jurisdiccion        String
   condicionIva        String
   idActividad         String
-  
+  pyme                Boolean   @default(false)
+
   activo              Boolean   @default(true) 
   fechaEliminacion    DateTime? 
 

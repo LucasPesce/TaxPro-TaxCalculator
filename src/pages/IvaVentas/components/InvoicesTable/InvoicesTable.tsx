@@ -1,4 +1,3 @@
-//================ IMPORTACIONES ====================
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil, faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
@@ -8,107 +7,118 @@ import { Button } from '../../../../components/ui/Button/Button';
 import { StatusBadge } from '../../../../components/ui/StatusBadge/StatusBadge';
 import styles from './InvoicesTable.module.css';
 
-//================ DEFINICIÓN DE TIPOS Y PROPS ====================
-type SortKey = keyof Invoice;
-type SortDirection = 'ascending' | 'descending';
-
 interface InvoicesTableProps {
     invoices: Invoice[];
     onEdit: (invoice: Invoice) => void;
-    onSort: (key: SortKey) => void;
-    sortConfig: { key: SortKey; direction: SortDirection };
+    onSort: (key: any) => void;
+    sortConfig: { key: string | number | symbol; direction: 'ascending' | 'descending' };
 }
 
-//================ FUNCIÓN UTILITARIA: FORMATEO DE MONEDA ====================
 const formatCurrency = (value: number) => {
-    return value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return value ? value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00';
 }
 
-//================ COMPONENTE PRINCIPAL: InvoicesTable ====================
 export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, onSort, sortConfig }) => {
 
-    //================ LÓGICA INTERNA: GESTIÓN DE ICONOS DE ORDENAMIENTO ====================
-    const getSortIcon = (key: SortKey) => {
-        if (sortConfig.key !== key) {
-            return faSort;
-        }
-        if (sortConfig.direction === 'ascending') {
-            return faSortUp;
-        }
-        return faSortDown;
+    const getSortIcon = (key: any) => {
+        if (sortConfig.key !== key) return faSort;
+        return sortConfig.direction === 'ascending' ? faSortUp : faSortDown;
     };
-    //================ RENDERIZADO DEL COMPONENTE ====================
+
     return (
-        <Card title="Registro de Facturas">
+        <Card title="Registro de Facturas de Venta">
             <div className={styles.tableWrapper}>
-                <table className={styles.table}>
+<table className={styles.table} style={{ textAlign: 'center' }}>
                     <thead>
-                        <tr>
-                            <th>Cliente</th>
-                            <th>Condición IVA</th>
-                            <th>Documento</th>
-                            <th>Fecha</th>
-                            <th>Comprobante</th>
-                            <th className={styles.sortableHeader} onClick={() => onSort('nro')}>
-                                Número
-                                <FontAwesomeIcon icon={getSortIcon('nro')} className={styles.sortIcon} />
-                            </th>
-                            <th>Monto Gravado</th>
+                        <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted-color)' }}>
+                            <th className={styles.sortableHeader} onClick={() => onSort('fecha')}>F. Emisión <FontAwesomeIcon icon={getSortIcon('fecha')} /></th>
+                            <th>Tipo Comp.</th>
+                            <th>Pto Venta</th>
+                            <th>Nro Desde</th>
+                            <th>Nro Hasta</th>
+                            <th>Cód. Autoriz.</th>
+                            <th>Tipo Doc.</th>
+                            <th>Nro Doc.</th>
+                            <th className={styles.sortableHeader} onClick={() => onSort('denominacionReceptor')}>Receptor <FontAwesomeIcon icon={getSortIcon('denominacionReceptor')} /></th>
+                            <th>T. Cambio</th>
+                            <th>Moneda</th>
+                            <th>Neto IVA 0%</th>
+                            <th>IVA 2.5%</th>
+                            <th>Neto IVA 2.5%</th>
+                            <th>IVA 5%</th>
+                            <th>Neto IVA 5%</th>
+                            <th>IVA 10.5%</th>
+                            <th>Neto IVA 10.5%</th>
                             <th>IVA 21%</th>
-                            <th>Ingresos Brutos</th>
-                            <th>Taza Municipal</th>
-                            <th>Total</th>
-                            <th>Provincia</th>
-                            <th className={styles.sortableHeader} onClick={() => onSort('controlIva')}>
-                                Control IVA
-                                <FontAwesomeIcon icon={getSortIcon('controlIva')} className={styles.sortIcon} />
-                            </th>
-                            <th className={styles.sortableHeader} onClick={() => onSort('correlatividad')}>
-                                Correlatividad
-                                <FontAwesomeIcon icon={getSortIcon('correlatividad')} className={styles.sortIcon} />
-                            </th>
-                            <th></th>
+                            <th>Neto IVA 21%</th>
+                            <th>IVA 27%</th>
+                            <th>Neto IVA 27%</th>
+                            <th>Neto Grav. Total</th>
+                            <th>Neto No Grav.</th>
+                            <th>Op. Exentas</th>
+                            <th>Otros Trib.</th>
+                            <th>Total IVA</th>
+                            <th className={styles.sortableHeader} onClick={() => onSort('total')}>Total <FontAwesomeIcon icon={getSortIcon('total')} /></th>
+                            <th className={styles.sortableHeader} onClick={() => onSort('controlIva')}>Control IVA <FontAwesomeIcon icon={getSortIcon('controlIva')} /></th>
+                            <th className={styles.sortableHeader} onClick={() => onSort('correlatividad')}>Correlatividad <FontAwesomeIcon icon={getSortIcon('correlatividad')} /></th>
                         </tr>
                     </thead>
-
+                    
                     <tbody>
                         {invoices.length > 0 ? (
                             invoices.map((invoice) => (
-                                <tr key={invoice.id}>
-                                    <td>{invoice.cliente}</td>
-                                    <td>{invoice.condIva}</td>
-                                    <td>{invoice.docNumero === 0 ? '-' : invoice.docNumero}</td>
+                                <tr key={invoice.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                     <td>{invoice.fecha}</td>
-                                    <td>{invoice.doc}</td>
-                                    <td>{invoice.nro}</td>
-                                    <td>${formatCurrency(invoice.montoGravado)}</td>
+                                    <td>{invoice.tipoComprobante}</td>
+                                    <td>{invoice.puntoVenta}</td>
+                                    <td>{invoice.numeroDesde}</td>
+                                    <td>{invoice.numeroHasta}</td>
+                                    <td style={{ fontFamily: 'monospace' }}>{invoice.codAutorizacion || '-'}</td>
+                                    <td>{invoice.tipoDocReceptor}</td>
+                                    <td>{invoice.nroDocReceptor}</td>
+                                    <td style={{ fontWeight: '600' }}>{invoice.denominacionReceptor}</td>
+                                    <td>{invoice.tipoCambio}</td>
+                                    <td>{invoice.moneda}</td>
+                                    
+                                    {/* Alícuotas e Importes específicos */}
+                                    <td>${formatCurrency(invoice.netoGravado0)}</td>
+                                    <td>${formatCurrency(invoice.iva25)}</td>
+                                    <td>${formatCurrency(invoice.netoGravado25)}</td>
+                                    <td>${formatCurrency(invoice.iva5)}</td>
+                                    <td>${formatCurrency(invoice.netoGravado5)}</td>
+                                    <td>${formatCurrency(invoice.iva105)}</td>
+                                    <td>${formatCurrency(invoice.netoGravado105)}</td>
                                     <td>${formatCurrency(invoice.iva21)}</td>
-                                    <td>${formatCurrency(invoice.percIIBB)}</td>
-                                    <td>${formatCurrency(invoice.percMun)}</td>
-                                    <td>${formatCurrency(invoice.total)}</td>
-                                    <td>{invoice.provincia}</td>
+                                    <td>${formatCurrency(invoice.netoGravado21)}</td>
+                                    <td>${formatCurrency(invoice.iva27)}</td>
+                                    <td>${formatCurrency(invoice.netoGravado27)}</td>
+                                    
+                                    {/* Totales consolidadores */}
+                                    <td>${formatCurrency(invoice.montoGravadoTotal)}</td>
+                                    <td>${formatCurrency(invoice.netoNoGravado)}</td>
+                                    <td>${formatCurrency(invoice.operacionesExentas)}</td>
+                                    <td>${formatCurrency(invoice.otrosTributos)}</td>
+                                    <td>${formatCurrency(invoice.totalIva)}</td>
+                                    <td style={{ fontWeight: 'bold' }}>${formatCurrency(invoice.total)}</td>
+                                    
                                     <td><StatusBadge status={invoice.controlIva} /></td>
                                     <td><StatusBadge status={invoice.correlatividad} /></td>
-                                    <Button
-                                        variant="icon"
-                                        onClick={() => onEdit(invoice)}
-                                        title={
-                                            invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto'
-                                                ? "Esta factura no presenta errores"
-                                                : `Editar factura ${invoice.nro}`
-                                        }
-                                        disabled={
-                                            invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto'
-                                        }
-                                    >
-                                        <FontAwesomeIcon icon={faPencil} />
-                                    </Button>
+                                    <td>
+                                        <Button 
+                                            variant="icon" 
+                                            onClick={() => onEdit(invoice)} 
+                                            title={invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto' ? "Sin errores para editar" : `Editar factura`}
+                                            disabled={invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto'}
+                                        >
+                                            <FontAwesomeIcon icon={faPencil} />
+                                        </Button>
+                                    </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={15} className={styles.emptyTableMessage}>
-                                    Aún no se han cargado datos. Por favor, importe un archivo para comenzar.
+                                <td colSpan={31} className={styles.emptyTableMessage}>
+                                    No hay comprobantes cargados en este periodo.
                                 </td>
                             </tr>
                         )}

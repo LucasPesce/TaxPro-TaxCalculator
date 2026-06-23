@@ -7,7 +7,7 @@ interface CostTypeChartProps {
     invoices: PurchaseInvoice[];
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const COLORS = ['#2196F3', '#ff9800', '#d7005d', '#830499', '#eb7600', '#929593'];
 
 export const CostTypeChart: React.FC<CostTypeChartProps> = ({ invoices }) => {
 
@@ -15,31 +15,38 @@ export const CostTypeChart: React.FC<CostTypeChartProps> = ({ invoices }) => {
         const grouped: Record<string, number> = {};
         let grandTotal = 0;
 
-        // Agrupar y sumar
         invoices.forEach(inv => {
-            const cat = inv.clasificacion || "Sin clasificar";
-            // Usamos montoGravado como base del costo, o podrías usar 'total' según criterio contable
-            const monto = inv.montoGravado;
-            grouped[cat] = (grouped[cat] || 0) + monto;
+            const type = inv.tipoComprobante || "Otros";
+
+            let typeLabel = type;
+            if (type === '1' || type === 'Factura A') typeLabel = 'Factura A';
+            else if (type === '6' || type === 'Factura B') typeLabel = 'Factura B';
+            else if (type === '11' || type === 'Factura C') typeLabel = 'Factura C';
+            else if (type === '3' || type === 'Nota Crédito A') typeLabel = 'Nota Crédito A';
+            else if (type === '8' || type === 'Nota Crédito B') typeLabel = 'Nota Crédito B';
+
+            const monto = inv.montoGravado || 0;
+            grouped[typeLabel] = (grouped[typeLabel] || 0) + monto;
             grandTotal += monto;
         });
 
-        // Convertir a array para Recharts
-        return Object.entries(grouped).map(([name, value]) => ({
-            name,
-            value,
-            percentage: grandTotal ? (value / grandTotal * 100) : 0
-        })).sort((a, b) => b.value - a.value); // Ordenar mayor a menor
+        return Object.entries(grouped)
+            .map(([name, value]) => ({
+                name,
+                value,
+                percentage: grandTotal ? (value / grandTotal * 100) : 0
+            }))
+            .filter(item => item.value > 0)
+            .sort((a, b) => b.value - a.value);
 
     }, [invoices]);
 
     const grandTotal = data.reduce((acc, item) => acc + item.value, 0);
 
-    if (grandTotal === 0) return <div className={styles.emptyState}>Sin datos de costos</div>;
+    if (grandTotal === 0) return <div className={styles.emptyState}>Sin datos de comprobantes</div>;
 
     return (
         <div className={styles.container}>
-            {/* Lado Izquierdo: Gráfico */}
             <div className={styles.chartSide}>
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -59,25 +66,21 @@ export const CostTypeChart: React.FC<CostTypeChartProps> = ({ invoices }) => {
                 </ResponsiveContainer>
             </div>
 
-            {/* Lado Derecho: Tabla Leyenda */}
             <div className={styles.legendSide}>
                 <table className={styles.legendTable}>
                     <thead>
                         <tr>
-                            <th>Clasificación</th>
+                            <th>Comprobante</th>
                             <th>Monto</th>
                             <th>%</th>
                         </tr>
                     </thead>
-                    <tbody>
+                   <tbody>
                         {data.map((item, index) => {
-                            // Calculamos dinámicamente qué clase usar (color0, color1, etc.)
-                            const colorClass = styles[`color${index % 5}`];
-
+                            const itemColor = COLORS[index % COLORS.length];
                             return (
                                 <tr key={item.name}>
-                                    {/* Aquí combinamos la clase base (negrita) con la clase de color */}
-                                    <td className={`${styles.legendName} ${colorClass}`}>
+                                    <td className={styles.legendName} style={{ color: itemColor, fontWeight: 'bold' }}>
                                         {item.name}
                                     </td>
                                     <td>${item.value.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>

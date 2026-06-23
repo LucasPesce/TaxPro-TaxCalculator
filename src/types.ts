@@ -1,55 +1,77 @@
-// src/types.ts
 export interface Invoice {
   id: number;
-  cliente: string;
-  condIva: 'Consumidor Final' | 'Responsable Inscripto' | 'Monotributista' | string; // Agregamos string para ser flexibles con la importación
-  doc: string;
-  docNumero: number;
+  cuitEmpresa: string;
+  nombreEmpresa: string;
+  
+  // Datos AFIP
   fecha: string;
-  nro: string;
-  montoGravado: number;
+  tipoComprobante: string;
+  puntoVenta: string;
+  numeroDesde: string;
+  numeroHasta: string;
+  numeroFactura: string; 
+  codAutorizacion: string;
+  tipoDocReceptor: string;
+  nroDocReceptor: string;
+  denominacionReceptor: string;
+  tipoCambio: number;
+  moneda: string;
+  
+  // Importes
+  netoGravado0: number;
+  iva25: number;
+  netoGravado25: number;
+  iva5: number;
+  netoGravado5: number;
+  iva105: number;
+  netoGravado105: number;
   iva21: number;
-  percIIBB: number;
-  percMun: number;
+  netoGravado21: number;
+  iva27: number;
+  netoGravado27: number;
+  montoGravadoTotal: number;
+  netoNoGravado: number;
+  operacionesExentas: number;
+  otrosTributos: number;
+  totalIva: number;
   total: number;
-  provincia: string;
-  // Campos calculados (NO van a la BD)
+
+  // Estados locales del Frontend (no van a la BD)
   controlIva: 'Correcto' | 'Error';
   correlatividad: 'Correcto' | 'Error';
 }
+
 
 export interface PurchaseInvoice {
   id: number;
   cuitEmpresa: string;
   nombreEmpresa: string;
-  
-  proveedor: string;
-  cuitProveedor: string;
-  condicionIva: string;
-  doc: string; // Tipo de documento (Factura A, etc.)
-  nro: string; // Número de factura
-  
-  fechaEmision: string;
   fechaImputacion: string;
-  
   provincia: string;
   jurisdiccion: string;
-  clasificacion: string; // 'Mercadería', 'Servicios', etc.
-  
+
+  // Datos AFIP
+  fechaEmision: string;
+  tipoComprobante: string;
+  puntoVenta: string;
+  numeroDesde: string;
+  numeroHasta: string;
+  numeroFactura: string;
+  codAutorizacion: string;
+  tipoDocEmisor: string;
+  cuitProveedor: string;
+  proveedor: string;
+  tipoCambio: number;
+  moneda: string;
+
   // Importes
   montoGravado: number;
+  netoNoGravado: number;
   exento: number;
-  percIva: number;
-  percIIBB: number;
-  percMun: number;
-  ganancias: number;
-  iva27: number;
-  iva21: number;
-  iva105: number;
-  otrasRetenciones: number;
+  otrosTributos: number;
+  iva: number;
   total: number;
 
-  // Estado (Calculado en frontend)
   controlIva: 'Correcto' | 'Error';
 }
 
@@ -78,6 +100,7 @@ export interface Cliente {
   jurisdiccion: string;
   condicionIva: string;
   idActividad: string;
+  pyme: boolean;
   activo: boolean;
   fechaEliminacion?: string | null;
 }

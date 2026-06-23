@@ -121,8 +121,8 @@ export const IvaComprasPage: React.FC = () => {
                     }
                 </ChartCard>
 
-                {/* 3. Total por Tipo de Costo (Gráfico + Tabla) */}
-                <ChartCard title="Total por tipo de costo">
+                {/* 3. Total por Tipo de Comprobante) */}
+                <ChartCard title="Tipo de Comprobante">
                     <CostTypeChart invoices={allInvoices} />
                 </ChartCard>
             </div>
