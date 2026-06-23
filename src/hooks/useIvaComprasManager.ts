@@ -22,41 +22,28 @@ const TIPO_CBTE: Record<string, string> = {
   // Puedes agregar más códigos si aparecen
 };
 
-// --- MAPEO: DB -> FRONTEND  ---
+// --- MAPEO SEGURO: DB -> FRONTEND ---
 const mapDbToFrontend = (db: any): PurchaseInvoice => {
-  // Aseguramos que los números nunca sean nulos o indefinidos para que no se rompa la app
-  const montoGravado = db.montoGravado || 0;
-  const iva21 = db.iva21 || 0;
+  const g = db.montoGravado || 0;
+  const ex = db.exento || 0;
+  const noG = db.netoNoGravado || 0;
+  const otros = db.otrosTributos || 0;
+  const iva = db.iva || 0;
+  const tot = db.total || 0;
 
-  const calculatedIva21 = montoGravado * 0.21;
-  const difference = Math.abs(calculatedIva21 - iva21);
-  const ivaStatus = difference < 0.05 ? "Correcto" : "Error";
+  // Control matemático: La suma de partes debe ser igual al Total informado
+  const sumaConceptos = g + ex + noG + otros + iva;
+  const difference = Math.abs(tot - sumaConceptos);
+  const ivaStatus = difference < 0.1 ? "Correcto" : "Error";
 
   return {
-    id: db.id,
-    cuitEmpresa: db.cuitEmpresa || "",
-    nombreEmpresa: db.nombreEmpresa || "",
-    proveedor: db.proveedor || "",
-    cuitProveedor: db.cuitProveedor || "",
-    condicionIva: db.condicionIva || "",
-    doc: db.tipoDocumento || "",
-    nro: db.numeroFactura || "",
-    fechaEmision: db.fechaEmision || "",
-    fechaImputacion: db.fechaImputacion || "",
-    provincia: db.provincia || "",
-    jurisdiccion: db.jurisdiccion || "",
-    clasificacion: db.clasificacion || "",
-    montoGravado,
-    exento: db.exento || 0,
-    percIva: db.percIva || 0,
-    percIIBB: db.percIIBB || 0,
-    percMun: db.percMun || 0,
-    ganancias: db.ganancias || 0,
-    iva27: db.iva27 || 0,
-    iva21,
-    iva105: db.iva105 || 0,
-    otrasRetenciones: db.otrasRetenciones || 0,
-    total: db.total || 0,
+    ...db,
+    montoGravado: g,
+    exento: ex,
+    netoNoGravado: noG,
+    otrosTributos: otros,
+    iva,
+    total: tot,
     controlIva: ivaStatus,
   };
 };
@@ -111,6 +98,7 @@ export const useIvaComprasManager = () => {
   }, []);
 
   // --- IMPORTACIÓN ADAPTADA AL CSV DE AFIP ---
+  // 🚨 IMPORTACIÓN ADAPTADA AL CSV OFICIAL DE AFIP COMPRAS
   const handleFileImport = async (
     file: File,
     cuitEmpresa: string,
@@ -121,7 +109,7 @@ export const useIvaComprasManager = () => {
         header: true,
         skipEmptyLines: true,
         complete: async (results) => {
-          console.log("Filas crudas leídas del CSV:", results.data); // 🚨 CONTROL: Ver qué leyó del archivo
+          console.log("Filas de compras leídas del CSV:", results.data);
 
           const parsedInvoices = results.data.map((row: any) => {
             const ptoVenta = (row["Punto de Venta"] || "0")
@@ -132,68 +120,48 @@ export const useIvaComprasManager = () => {
               .padStart(8, "0");
             const numeroCompleto = `${ptoVenta}-${nroDesde}`;
 
-            const codigoTipo = row["Tipo de Comprobante"]?.toString() || "0";
-            const tipoDoc = TIPO_CBTE[codigoTipo] || `Código ${codigoTipo}`;
-
-            const gravado = parseMoney(row["Imp. Neto Gravado"]);
-            const noGravado = parseMoney(row["Imp. Neto No Gravado"]);
-            const exento = parseMoney(row["Imp. Op. Exentas"]);
-            const otrosTrib = parseMoney(row["Otros Tributos"]);
-            const total = parseMoney(row["Imp. Total"]);
-            const ivaTotal = parseMoney(row["IVA"]);
-
-            let iva21 = 0,
-              iva105 = 0,
-              iva27 = 0;
-            if (gravado > 0 && ivaTotal > 0) {
-              const ratio = ivaTotal / gravado;
-              if (ratio > 0.2 && ratio < 0.22) iva21 = ivaTotal;
-              else if (ratio > 0.1 && ratio < 0.11) iva105 = ivaTotal;
-              else if (ratio > 0.26 && ratio < 0.28) iva27 = ivaTotal;
-              else iva21 = ivaTotal;
-            }
-
             return {
               cuitEmpresa,
               nombreEmpresa,
-              proveedor: row["Denominación Emisor"] || "Desconocido",
-              cuitProveedor: row["Nro. Doc. Emisor"] || "0",
-              condicionIva: "Resp. Inscripto",
-              doc: tipoDoc,
-              nro: numeroCompleto,
               fechaEmision: row["Fecha de Emisión"] || "",
-              fechaImputacion: row["Fecha de Emisión"] || "",
-              provincia: "Córdoba",
-              jurisdiccion: "Córdoba",
-              clasificacion: "Mercadería",
-              montoGravado: gravado,
-              exento: exento + noGravado,
-              percIva: 0,
-              percIIBB: 0,
-              percMun: 0,
-              ganancias: 0,
-              iva27,
-              iva21,
-              iva105,
-              otrasRetenciones: otrosTrib,
-              total,
+              fechaImputacion: row["Fecha de Emisión"] || "", // Por defecto imputa el mismo mes de emisión
+              tipoComprobante: row["Tipo de Comprobante"] || "",
+              puntoVenta: ptoVenta,
+              numeroDesde: nroDesde,
+              numeroHasta: (row["Número Hasta"] || "0")
+                .toString()
+                .padStart(8, "0"),
+              numeroFactura: numeroCompleto,
+              codAutorizacion: row["Cód. Autorización"] || "",
+              tipoDocEmisor: row["Tipo Doc. Emisor"] || "",
+              cuitProveedor: row["Nro. Doc. Emisor"] || "",
+              proveedor: row["Denominación Emisor"] || "",
+              tipoCambio: parseMoney(row["Tipo Cambio"]) || 1,
+              moneda: row["Moneda"] || "PES",
+
+              // Importes
+              montoGravado: parseMoney(row["Imp. Neto Gravado"]),
+              netoNoGravado: parseMoney(row["Imp. Neto No Gravado"]),
+              exento: parseMoney(row["Imp. Op. Exentas"]),
+              otrosTributos: parseMoney(row["Otros Tributos"]),
+              iva: parseMoney(row["IVA"]),
+              total: parseMoney(row["Imp. Total"]),
             };
           });
 
           try {
             const response = await fetch("/api/compras/lote", {
               method: "POST",
-              headers: getHeaders(), // 🚨 ESTO ES LO QUE REGISTRA LA AUDITORÍA
+              headers: getHeaders(),
               body: JSON.stringify({
                 invoices: parsedInvoices,
                 cuitEmpresa,
                 nombreEmpresa,
-                tipoOperacion: "IVA Compras",
               }),
             });
 
             if (!response.ok) throw new Error("Error en servidor");
-            resolve(); // Terminó bien
+            resolve();
           } catch (error) {
             console.error(error);
             alert("Error al importar compras.");

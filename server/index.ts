@@ -52,101 +52,94 @@ app.get("/api/facturas", async (req, res) => {
     const whereClause: any = { AND: [] };
 
     if (search) {
-      const searchTerm = String(search);
-      const searchLimpio = searchTerm.replace(/\D/g, ""); 
-      
+      const term = String(search);
+      const termLimpio = term.replace(/\D/g, "");
       whereClause.AND.push({
         OR: [
-          { nombreEmpresa: { contains: searchTerm } },
-          { cuitCliente: { contains: searchLimpio } },
+          { nombreEmpresa: { contains: term } },
+          { cuitEmpresa: { contains: termLimpio } }, // Cambiado a cuitEmpresa
         ],
       });
     }
 
     if (period) {
-      const [year, month] = String(period).split("-"); 
-      const monthSingle = parseInt(month, 10).toString(); 
-      
+      const [year, month] = String(period).split("-");
+      const monthSingle = parseInt(month, 10).toString();
       whereClause.AND.push({
         OR: [
-          { fecha: { contains: `/${month}/${year}` } },      // Ej: 15/02/2025
-          { fecha: { contains: `/${monthSingle}/${year}` } },// Ej: 1/2/2025
-          { fecha: { contains: `${year}-${month}` } },       // Ej: 2025-02-15
-          { fecha: { contains: `${year}-${monthSingle}` } }  // Ej: 2025-2-1
-        ]
+          { fecha: { contains: `/${month}/${year}` } },
+          { fecha: { contains: `/${monthSingle}/${year}` } },
+          { fecha: { contains: `${year}-${month}` } },
+          { fecha: { contains: `${year}-${monthSingle}` } },
+        ],
       });
     }
 
     const facturas = await prisma.facturaVenta.findMany({
-      where: whereClause,
+      where: whereClause.AND.length > 0 ? whereClause : undefined,
       orderBy: { numeroFactura: "asc" },
     });
-
     res.json(facturas);
-     console.log("🔍 [Ventas] Filtro de búsqueda generado:", JSON.stringify(whereClause));
-
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Error al obtener las facturas" });
   }
 });
 
 app.post("/api/facturas/lote", async (req, res) => {
   const { invoices, cuitEmpresa, nombreEmpresa } = req.body;
-
-  if (!invoices || !Array.isArray(invoices)) {
-    return res.status(400).json({ error: "Se esperaba un array de facturas." });
-  }
+  if (!invoices || !Array.isArray(invoices))
+    return res.status(400).json({ error: "Datos inválidos." });
 
   try {
     const cuitActual = String(cuitEmpresa);
     let facturasInsertadas = 0;
-
-
- console.log(`📥 Recibida petición de importación de Ventas para CUIT: ${cuitActual}`);
-    console.log(`📊 Cantidad de facturas enviadas por el navegador: ${invoices.length}`);
-
-
-
     const periodoMuestra =
       invoices.length > 0 ? invoices[0].fecha.substring(3) : "Desconocido";
 
     for (const f of invoices) {
-      // Log de diagnóstico para ver qué datos le llegaron al servidor
-      console.log(`🔍 Validando Factura: Nro: "${f.nro}" | Cliente CUIT: "${cuitActual}"`);
-
       const existe = await prisma.facturaVenta.findFirst({
-        where: { cuitCliente: cuitActual, numeroFactura: f.nro },
+        where: { cuitEmpresa: cuitActual, numeroFactura: f.numeroFactura }, // Cambiado a cuitEmpresa
       });
 
-      if (existe) {
-        console.log(`⚠️ Ignorada por duplicada (Ya existe en BD): Nro: "${f.nro}"`);
-      }
-
       if (!existe) {
-        console.log(`💾 Guardando en BD: Nro: "${f.nro}"`);
         await prisma.facturaVenta.create({
           data: {
-            cuitCliente: cuitActual,
+            cuitEmpresa: cuitActual,
             nombreEmpresa: String(nombreEmpresa),
-            cliente: f.cliente,
-            condicionIva: f.condicionIva || f.condIva,
-            tipoDocumento: f.doc,
-            numeroDocumento: f.docNumero,
             fecha: f.fecha,
-            numeroFactura: f.nro,
-            montoGravado: f.montoGravado,
+            tipoComprobante: f.tipoComprobante,
+            puntoVenta: f.puntoVenta,
+            numeroDesde: f.numeroDesde,
+            numeroHasta: f.numeroHasta,
+            numeroFactura: f.numeroFactura,
+            codAutorizacion: f.codAutorizacion,
+            tipoDocReceptor: f.tipoDocReceptor,
+            nroDocReceptor: f.nroDocReceptor,
+            denominacionReceptor: f.denominacionReceptor,
+            tipoCambio: f.tipoCambio,
+            moneda: f.moneda,
+            netoGravado0: f.netoGravado0,
+            iva25: f.iva25,
+            netoGravado25: f.netoGravado25,
+            iva5: f.iva5,
+            netoGravado5: f.netoGravado5,
+            iva105: f.iva105,
+            netoGravado105: f.netoGravado105,
             iva21: f.iva21,
-            percIIBB: f.percIIBB,
-            percMun: f.percMun,
+            netoGravado21: f.netoGravado21,
+            iva27: f.iva27,
+            netoGravado27: f.netoGravado27,
+            montoGravadoTotal: f.montoGravadoTotal,
+            netoNoGravado: f.netoNoGravado,
+            operacionesExentas: f.operacionesExentas,
+            otrosTributos: f.otrosTributos,
+            totalIva: f.totalIva,
             total: f.total,
-            provincia: f.provincia,
           },
         });
         facturasInsertadas++;
       }
     }
-    console.log(`📊 TOTAL FACTURAS REALMENTE GUARDADAS: ${facturasInsertadas}`);
 
     if (facturasInsertadas > 0) {
       await registrarActividad(
@@ -154,70 +147,63 @@ app.post("/api/facturas/lote", async (req, res) => {
         "IMPORTACIÓN",
         "Lote Ventas",
         0,
-        `El usuario importó ${facturasInsertadas} facturas del cliente ${nombreEmpresa} (${cuitActual}) correspondientes al periodo ${periodoMuestra}`,
+        `Importación de ${facturasInsertadas} facturas de venta (Cliente: ${cuitActual}) periodo ${periodoMuestra}`,
       );
     }
 
+    // --- REVISIÓN DE HUECOS (Adaptada a la nueva BD) ---
     const facturasAnalisis = await prisma.facturaVenta.findMany({
-      where: { cuitCliente: cuitActual },
+      where: { cuitEmpresa: cuitActual },
       orderBy: { numeroFactura: "asc" },
     });
-
     const gruposSeries: Record<string, typeof facturasAnalisis> = {};
 
     facturasAnalisis.forEach((f) => {
       if (!f.numeroFactura || !f.numeroFactura.includes("-")) return;
-      const [ptVenta] = f.numeroFactura.split("-");
-      const tipoDoc = f.tipoDocumento ? f.tipoDocumento.trim() : "Desconocido";
-      const claveGrupo = `${ptVenta}|${tipoDoc}`;
+      const claveGrupo = `${f.puntoVenta}|${f.tipoComprobante}`;
       if (!gruposSeries[claveGrupo]) gruposSeries[claveGrupo] = [];
       gruposSeries[claveGrupo].push(f);
     });
 
     let huecosGenerados = 0;
-
     for (const clave in gruposSeries) {
-      const facturasDelGrupo = gruposSeries[clave];
-      const [ptVenta, tipoDocSerie] = clave.split("|");
-
-      const numerosOrdenados = facturasDelGrupo
-        .map((f) => ({
-          numero: parseInt(f.numeroFactura.split("-")[1]),
-          original: f,
-        }))
-        .sort((a, b) => a.numero - b.numero);
-
+      const numerosOrdenados = gruposSeries[clave]
+        .map((f) => parseInt(f.numeroDesde))
+        .sort((a, b) => a - b);
       if (numerosOrdenados.length > 1) {
         for (let i = 0; i < numerosOrdenados.length - 1; i++) {
-          const actual = numerosOrdenados[i].numero;
-          const siguiente = numerosOrdenados[i + 1].numero;
-
-          if (siguiente > actual + 1) {
-            for (let j = actual + 1; j < siguiente; j++) {
-              const numeroFaltanteStr = String(j).padStart(8, "0");
-              const nroCompleto = `${ptVenta}-${numeroFaltanteStr}`;
+          if (numerosOrdenados[i + 1] > numerosOrdenados[i] + 1) {
+            for (
+              let j = numerosOrdenados[i] + 1;
+              j < numerosOrdenados[i + 1];
+              j++
+            ) {
+              const [ptoVentaStr, tipoCompStr] = clave.split("|");
+              const nroFaltanteStr = String(j).padStart(8, "0");
+              const nroCompleto = `${ptoVentaStr}-${nroFaltanteStr}`;
 
               const existeHueco = await prisma.facturaVenta.findFirst({
-                where: { cuitCliente: cuitActual, numeroFactura: nroCompleto },
+                where: { cuitEmpresa: cuitActual, numeroFactura: nroCompleto },
               });
 
               if (!existeHueco) {
                 await prisma.facturaVenta.create({
                   data: {
-                    cuitCliente: cuitActual,
+                    cuitEmpresa: cuitActual,
                     nombreEmpresa: String(nombreEmpresa),
-                    cliente: "--- FACTURA FALTANTE ---",
-                    condicionIva: "Consumidor Final",
-                    tipoDocumento: tipoDocSerie,
-                    numeroDocumento: 0,
-                    fecha: "",
+                    denominacionReceptor: "--- FACTURA FALTANTE ---",
+                    nroDocReceptor: "0",
+                    tipoDocReceptor: "0",
+                    tipoComprobante: tipoCompStr,
+                    puntoVenta: ptoVentaStr,
+                    numeroDesde: nroFaltanteStr,
+                    numeroHasta: nroFaltanteStr,
                     numeroFactura: nroCompleto,
-                    montoGravado: 0,
-                    iva21: 0,
-                    percIIBB: 0,
-                    percMun: 0,
-                    total: 0,
-                    provincia: "Sin definir",
+                    codAutorizacion: "",
+                    moneda: "PES",
+                    tipoCambio: 1,
+                    fecha: "",
+                    // El resto en 0 por defecto
                   },
                 });
                 huecosGenerados++;
@@ -234,24 +220,27 @@ app.post("/api/facturas/lote", async (req, res) => {
         "AUTO-CREACIÓN",
         "Lote Ventas",
         0,
-        `El sistema generó ${huecosGenerados} registros faltantes por correlatividad para el CUIT ${cuitActual}`,
+        `Generados ${huecosGenerados} registros faltantes por correlatividad para ${cuitActual}`,
       );
     }
 
-    const facturasDelCliente = await prisma.facturaVenta.findMany({
-      where: { cuitCliente: cuitActual },
-      orderBy: { numeroFactura: "asc" },
-    });
-    res.status(201).json(facturasDelCliente);
+    res
+      .status(201)
+      .json(
+        await prisma.facturaVenta.findMany({
+          where: { cuitEmpresa: cuitActual },
+          orderBy: { numeroFactura: "asc" },
+        }),
+      );
   } catch (error) {
-    console.error("Error en el servidor:", error);
+    console.error(error);
     res.status(500).json({ error: "Error al procesar el lote" });
   }
 });
 
 app.put("/api/facturas/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const datos = req.body;
+  const f = req.body;
 
   try {
     const registroAnterior = await prisma.facturaVenta.findUnique({
@@ -261,17 +250,35 @@ app.put("/api/facturas/:id", async (req, res) => {
     const facturaActualizada = await prisma.facturaVenta.update({
       where: { id: id },
       data: {
-        cliente: datos.cliente,
-        condicionIva: datos.condIva,
-        tipoDocumento: datos.doc,
-        numeroDocumento: datos.docNumero,
-        fecha: datos.fecha,
-        montoGravado: datos.montoGravado,
-        iva21: datos.iva21,
-        percIIBB: datos.percIIBB,
-        percMun: datos.percMun,
-        total: datos.total,
-        provincia: datos.provincia,
+        fecha: f.fecha,
+        tipoComprobante: f.tipoComprobante,
+        puntoVenta: f.puntoVenta,
+        numeroDesde: f.numeroDesde,
+        numeroHasta: f.numeroHasta,
+        numeroFactura: f.numeroFactura,
+        codAutorizacion: f.codAutorizacion,
+        tipoDocReceptor: f.tipoDocReceptor,
+        nroDocReceptor: f.nroDocReceptor,
+        denominacionReceptor: f.denominacionReceptor,
+        tipoCambio: f.tipoCambio,
+        moneda: f.moneda,
+        netoGravado0: f.netoGravado0,
+        iva25: f.iva25,
+        netoGravado25: f.netoGravado25,
+        iva5: f.iva5,
+        netoGravado5: f.netoGravado5,
+        iva105: f.iva105,
+        netoGravado105: f.netoGravado105,
+        iva21: f.iva21,
+        netoGravado21: f.netoGravado21,
+        iva27: f.iva27,
+        netoGravado27: f.netoGravado27,
+        montoGravadoTotal: f.montoGravadoTotal,
+        netoNoGravado: f.netoNoGravado,
+        operacionesExentas: f.operacionesExentas,
+        otrosTributos: f.otrosTributos,
+        totalIva: f.totalIva,
+        total: f.total,
       },
     });
 
@@ -284,11 +291,10 @@ app.put("/api/facturas/:id", async (req, res) => {
       registroAnterior,
       facturaActualizada,
     );
-
     res.json(facturaActualizada);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: `Error al actualizar la factura ${id}` });
+    res.status(500).json({ error: `Error al actualizar la factura` });
   }
 });
 
@@ -301,29 +307,29 @@ app.get("/api/compras", async (req, res) => {
   try {
     const whereClause: any = { AND: [] };
 
-if (search) {
+    if (search) {
       const term = String(search);
-      const termLimpio = term.replace(/\D/g, ""); 
-      
+      const termLimpio = term.replace(/\D/g, "");
+
       whereClause.AND.push({
         OR: [
-          { nombreEmpresa: { contains: term } }, 
-          { cuitEmpresa: { contains: termLimpio } }, 
+          { nombreEmpresa: { contains: term } },
+          { cuitEmpresa: { contains: termLimpio } },
         ],
       });
     }
 
     if (period) {
       const [year, month] = String(period).split("-");
-      const monthSingle = parseInt(month, 10).toString(); 
-      
+      const monthSingle = parseInt(month, 10).toString();
+
       whereClause.AND.push({
         OR: [
           { fechaImputacion: { contains: `/${month}/${year}` } },
           { fechaImputacion: { contains: `/${monthSingle}/${year}` } },
           { fechaImputacion: { contains: `${year}-${month}` } },
-          { fechaImputacion: { contains: `${year}-${monthSingle}` } }
-        ]
+          { fechaImputacion: { contains: `${year}-${monthSingle}` } },
+        ],
       });
     }
 
@@ -335,7 +341,6 @@ if (search) {
     // 🚨 Nos dirá si la base de datos devolvió los registros o no
 
     res.json(compras);
-
   } catch (error) {
     res.status(500).json({ error: "Error al obtener compras" });
   }
@@ -350,52 +355,58 @@ app.post("/api/compras/lote", async (req, res) => {
   try {
     const cuitActual = String(cuitEmpresa);
     let comprasInsertadas = 0;
+    const periodoMuestra = invoices.length > 0 ? invoices[0].fechaImputacion.substring(3) : "Desconocido";
 
-    const periodoMuestra =
-      invoices.length > 0
-        ? invoices[0].fechaImputacion.substring(3)
-        : "Desconocido";
+    console.log(`📥 Recibida petición de importación de Compras para CUIT: ${cuitActual}`);
+    console.log(`📊 Cantidad de facturas enviadas por el navegador: ${invoices.length}`);
 
     for (const f of invoices) {
       const existe = await prisma.facturaCompra.findFirst({
         where: {
           cuitEmpresa: cuitActual,
-          cuitProveedor: f.cuitProveedor, 
+          cuitProveedor: f.cuitProveedor,
           numeroFactura: f.nro,
         },
       });
 
-     if (!existe) {
+      if (existe) {
+        console.log(`⚠️ Ignorada por duplicada (Ya existe en BD): Nro: "${f.nro}"`);
+      }
+
+      if (!existe) {
+        console.log(`💾 Guardando en BD: Nro: "${f.nro}"`);
         await prisma.facturaCompra.create({
           data: {
             cuitEmpresa: cuitActual,
             nombreEmpresa: String(nombreEmpresa),
-            proveedor: f.proveedor,
-            cuitProveedor: f.cuitProveedor,
-            condicionIva: f.condicionIva,
-            tipoDocumento: f.doc,
-            numeroFactura: f.nro,
             fechaEmision: f.fechaEmision,
             fechaImputacion: f.fechaImputacion,
-            provincia: f.provincia,
-            jurisdiccion: f.jurisdiccion,
-            clasificacion: f.clasificacion || "Sin Clasificar",
-            montoGravado: f.montoGravado || 0,
-            exento: f.exento || 0,
-            percIva: f.percIva || 0,
-            percIIBB: f.percIIBB || 0,
-            percMun: f.percMun || 0,
-            ganancias: f.ganancias || 0,
-            iva27: f.iva27 || 0,
-            iva21: f.iva21 || 0,
-            iva105: f.iva105 || 0,
-            otrasRetenciones: f.otrasRetenciones || 0,
-            total: f.total || 0,
+            tipoComprobante: f.tipoComprobante,
+            puntoVenta: f.puntoVenta,
+            numeroDesde: f.numeroDesde,
+            numeroHasta: f.numeroHasta,
+            numeroFactura: f.numeroFactura,
+            codAutorizacion: f.codAutorizacion,
+            tipoDocEmisor: f.tipoDocEmisor,
+            cuitProveedor: f.cuitProveedor,
+            proveedor: f.proveedor,
+            tipoCambio: f.tipoCambio,
+            moneda: f.moneda,
+            montoGravado: f.montoGravado,
+            netoNoGravado: f.netoNoGravado,
+            exento: f.exento,
+            otrosTributos: f.otrosTributos,
+            iva: f.iva,
+            total: f.total,
+            provincia: f.provincia || "Córdoba",
+            jurisdiccion: f.jurisdiccion || "Córdoba",
+            activo: true,
           },
         });
         comprasInsertadas++;
       }
     }
+
     if (comprasInsertadas > 0) {
       await registrarActividad(
         req,
@@ -417,6 +428,7 @@ app.post("/api/compras/lote", async (req, res) => {
   }
 });
 
+
 app.post("/api/compras", async (req, res) => {
   const f = req.body;
   const cuitActual = f.cuitEmpresa;
@@ -426,27 +438,27 @@ app.post("/api/compras", async (req, res) => {
       data: {
         cuitEmpresa: cuitActual,
         nombreEmpresa: f.nombreEmpresa,
-        proveedor: f.proveedor,
-        cuitProveedor: f.cuitProveedor,
-        condicionIva: f.condicionIva,
-        tipoDocumento: f.doc,
-        numeroFactura: f.nro,
         fechaEmision: f.fechaEmision,
         fechaImputacion: f.fechaImputacion,
-        provincia: f.provincia,
-        jurisdiccion: f.jurisdiccion,
-        clasificacion: f.clasificacion,
+        tipoComprobante: f.tipoComprobante,
+        puntoVenta: f.puntoVenta,
+        numeroDesde: f.numeroDesde,
+        numeroHasta: f.numeroHasta,
+        numeroFactura: f.numeroFactura,
+        codAutorizacion: f.codAutorizacion,
+        tipoDocEmisor: f.tipoDocEmisor,
+        cuitProveedor: f.cuitProveedor,
+        proveedor: f.proveedor,
+        tipoCambio: parseFloat(f.tipoCambio) || 1,
+        moneda: f.moneda || "PES",
         montoGravado: parseFloat(f.montoGravado) || 0,
+        netoNoGravado: parseFloat(f.netoNoGravado) || 0,
         exento: parseFloat(f.exento) || 0,
-        percIva: parseFloat(f.percIva) || 0,
-        percIIBB: parseFloat(f.percIIBB) || 0,
-        percMun: parseFloat(f.percMun) || 0,
-        ganancias: parseFloat(f.ganancias) || 0,
-        iva27: parseFloat(f.iva27) || 0,
-        iva21: parseFloat(f.iva21) || 0,
-        iva105: parseFloat(f.iva105) || 0,
-        otrasRetenciones: parseFloat(f.otrasRetenciones) || 0,
+        otrosTributos: parseFloat(f.otrosTributos) || 0,
+        iva: parseFloat(f.iva) || 0,
         total: parseFloat(f.total) || 0,
+        provincia: f.provincia || "Córdoba",
+        jurisdiccion: f.jurisdiccion || "Córdoba",
       },
     });
 
@@ -455,7 +467,7 @@ app.post("/api/compras", async (req, res) => {
       "CREACIÓN",
       "FacturaCompra",
       nueva.id,
-      `Alta manual de compra: ${f.nro}`,
+      `Alta manual de compra: ${f.numeroFactura}`,
     );
 
     res.json(nueva);
@@ -470,29 +482,29 @@ app.put("/api/compras/:id", async (req, res) => {
   const datos = req.body;
 
   try {
-    const registroAnterior = await prisma.facturaCompra.findUnique({
-      where: { id },
-    });
-
+    const registroAnterior = await prisma.facturaCompra.findUnique({ where: { id }});
+    
     const actualizada = await prisma.facturaCompra.update({
       where: { id },
       data: {
-        proveedor: datos.proveedor,
-        cuitProveedor: datos.cuitProveedor,
+        fechaEmision: datos.fechaEmision,
         fechaImputacion: datos.fechaImputacion,
-        tipoDocumento: datos.doc,
-        numeroFactura: datos.nro,
-        clasificacion: datos.clasificacion,
+        tipoComprobante: datos.tipoComprobante,
+        puntoVenta: datos.puntoVenta,
+        numeroDesde: datos.numeroDesde,
+        numeroHasta: datos.numeroHasta,
+        numeroFactura: datos.numeroFactura,
+        codAutorizacion: datos.codAutorizacion,
+        tipoDocEmisor: datos.tipoDocEmisor,
+        cuitProveedor: datos.cuitProveedor,
+        proveedor: datos.proveedor,
+        tipoCambio: parseFloat(datos.tipoCambio) || 1,
+        moneda: datos.moneda || "PES",
         montoGravado: parseFloat(datos.montoGravado) || 0,
+        netoNoGravado: parseFloat(datos.netoNoGravado) || 0,
         exento: parseFloat(datos.exento) || 0,
-        percIva: parseFloat(datos.percIva) || 0,
-        percIIBB: parseFloat(datos.percIIBB) || 0,
-        percMun: parseFloat(datos.percMun) || 0,
-        ganancias: parseFloat(datos.ganancias) || 0,
-        iva27: parseFloat(datos.iva27) || 0,
-        iva21: parseFloat(datos.iva21) || 0,
-        iva105: parseFloat(datos.iva105) || 0,
-        otrasRetenciones: parseFloat(datos.otrasRetenciones) || 0,
+        otrosTributos: parseFloat(datos.otrosTributos) || 0,
+        iva: parseFloat(datos.iva) || 0,
         total: parseFloat(datos.total) || 0,
       },
     });
@@ -503,8 +515,8 @@ app.put("/api/compras/:id", async (req, res) => {
       "FacturaCompra",
       id,
       `Se editó la compra: ${actualizada.numeroFactura}`,
-      registroAnterior,
-      actualizada,
+      registroAnterior, 
+      actualizada
     );
 
     res.json(actualizada);
@@ -535,7 +547,7 @@ app.post("/api/facturas/impactar", async (req, res) => {
     } else {
       facturasAImpactar = await prisma.facturaVenta.findMany({
         where: {
-          cuitCliente: String(cuitEmpresa),
+          cuitEmpresa: String(cuitEmpresa),
           fecha: { endsWith: searchString },
         },
       });

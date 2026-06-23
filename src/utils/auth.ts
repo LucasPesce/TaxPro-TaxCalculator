@@ -1,4 +1,3 @@
-// src/utils/auth.ts
 export type RolUsuario = 
   | 'Administrador de Usuarios'
   | 'Asistente Contable'
