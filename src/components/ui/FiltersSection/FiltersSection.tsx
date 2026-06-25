@@ -8,7 +8,7 @@ import styles from './FiltersSection.module.css';
 
 interface FiltersSectionProps {
     modulo: 'ventas' | 'compras';
-    onFileImport: (file: File, cuit: string, nombre: string) => Promise<void>;
+    onFileImport: (file: File, cuit: string, nombre: string) => Promise<string | null>;
     onSearch: (searchTerm: string, period: string) => void;
     hasData: boolean;
 }
@@ -84,8 +84,9 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
         if (!selectedFile) {
             return alert('Por favor, selecciona un archivo CSV primero.');
         }
-        if (!selectedCuit || !selectedPeriod) {
-            return alert('Para importar, primero debes seleccionar un Cliente y un Periodo.');
+        // 🚨 CAMBIO 1: Ya no exigimos que seleccione periodo
+        if (!selectedCuit) {
+            return alert('Para importar, primero debes seleccionar la Empresa a liquidar.');
         }
 
         setIsImporting(true);
@@ -93,11 +94,15 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
         const nombreEmpresa = entidad?.razonSocial || 'Desconocido';
 
         try {
-            // Esperamos a que el servidor termine de procesar el archivo
-            await onFileImport(selectedFile, selectedCuit, nombreEmpresa);
+            // 🚨 CAMBIO 2: Capturamos el periodo que detectó el hook
+            const detectedPeriod = await onFileImport(selectedFile, selectedCuit, nombreEmpresa);
 
-            // Forzamos un refresco inmediato de la tabla con los nuevos datos
-            onSearch(selectedCuit, selectedPeriod);
+            if (detectedPeriod) {
+                // Actualizamos el selector al mes detectado y buscamos automáticamente
+                setSelectedPeriod(detectedPeriod);
+                setHasSearched(true);
+                onSearch(selectedCuit, detectedPeriod);
+            }
 
             // Limpiamos los inputs del archivo
             setSelectedFile(null);
@@ -117,7 +122,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
         onSearch(selectedCuit, selectedPeriod);
     };
 
-    const isImportBlocked = hasData || !selectedCuit || !selectedPeriod || isImporting;
+    const isImportBlocked = !selectedCuit || isImporting;
 
     return (
         <Card title="Filtros y Acciones">
@@ -165,9 +170,9 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
                     variant="primary"
                     onClick={handleImportClick}
                     disabled={isImportBlocked}
-                    title={hasData ? "La importación está bloqueada porque ya existen registros para este filtro." : "Asegúrate de seleccionar cliente y periodo para importar."}
+                    title={!selectedCuit ? "Seleccione una empresa para importar." : "El sistema detectará el mes automáticamente."}
                 >
-                    <FontAwesomeIcon icon={faUpload} /> {isImporting ? "Importando..." : "Importar Facturas"}
+                    <FontAwesomeIcon icon={faUpload} /> {isImporting ? "Procesando..." : "Importar Facturas"}
                 </Button>
 
                 <label

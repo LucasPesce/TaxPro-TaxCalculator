@@ -98,12 +98,11 @@ export const useIvaComprasManager = () => {
   }, []);
 
   // --- IMPORTACIÓN ADAPTADA AL CSV DE AFIP ---
-  // 🚨 IMPORTACIÓN ADAPTADA AL CSV OFICIAL DE AFIP COMPRAS
   const handleFileImport = async (
     file: File,
     cuitEmpresa: string,
     nombreEmpresa: string,
-  ): Promise<void> => {
+  ): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
@@ -161,7 +160,19 @@ export const useIvaComprasManager = () => {
             });
 
             if (!response.ok) throw new Error("Error en servidor");
-            resolve();
+
+            let periodoDetectado = null;
+            if (parsedInvoices.length > 0) {
+              const fechaStr = parsedInvoices[0].fechaImputacion;
+              if (fechaStr.includes("-")) {
+                const partes = fechaStr.split("-");
+                periodoDetectado = `${partes[0]}-${partes[1]}`;
+              } else if (fechaStr.includes("/")) {
+                const partes = fechaStr.split("/");
+                periodoDetectado = `${partes[2]}-${partes[1]}`;
+              }
+            }
+            resolve(periodoDetectado);
           } catch (error) {
             console.error(error);
             alert("Error al importar compras.");
