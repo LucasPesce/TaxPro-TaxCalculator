@@ -17,17 +17,25 @@ const parseMoney = (val: string | number): number => {
 
 // --- MAPEO DE DB A FRONTEND (CORREGIDO Y SIN DUPLICAR) ---
 const mapDbToFrontend = (dbInvoice: any): Invoice => {
-    // Calculamos si el IVA Total cargado coincide con la sumatoria de las distintas alícuotas
-    const sumaIvas = dbInvoice.iva25 + dbInvoice.iva5 + dbInvoice.iva105 + dbInvoice.iva21 + dbInvoice.iva27;
-    const difference = Math.abs(dbInvoice.totalIva - sumaIvas);
-    const ivaStatus = difference < 0.1 ? "Correcto" : "Error";
+  // Calculamos si el IVA Total cargado coincide con la sumatoria de las distintas alícuotas
+  const sumaIvas =
+    dbInvoice.iva25 +
+    dbInvoice.iva5 +
+    dbInvoice.iva105 +
+    dbInvoice.iva21 +
+    dbInvoice.iva27;
+  const difference = Math.abs(dbInvoice.totalIva - sumaIvas);
+  const ivaStatus = difference < 0.1 ? "Correcto" : "Error";
 
-    return {
-        ...dbInvoice,
-        controlIva: ivaStatus,
-        // El backend genera la palabra "--- FACTURA FALTANTE ---" en denominacionReceptor para marcar los huecos
-        correlatividad: dbInvoice.denominacionReceptor === "--- FACTURA FALTANTE ---" ? "Error" : "Correcto"
-    };
+  return {
+    ...dbInvoice,
+    controlIva: ivaStatus,
+    // El backend genera la palabra "--- FACTURA FALTANTE ---" en denominacionReceptor para marcar los huecos
+    correlatividad:
+      dbInvoice.denominacionReceptor === "--- FACTURA FALTANTE ---"
+        ? "Error"
+        : "Correcto",
+  };
 };
 
 //==================== CUSTOM HOOK: useInvoicesManager ====================
@@ -70,7 +78,7 @@ export const useInvoicesManager = () => {
     file: File,
     cuitEmpresa: string,
     nombreEmpresa: string,
-  ): Promise<void> => {
+  ): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true, // 🚨 AHORA LEE LOS TÍTULOS DE AFIP DIRECTAMENTE
@@ -136,7 +144,19 @@ export const useInvoicesManager = () => {
               }),
             });
             if (!response.ok) throw new Error("Error en servidor");
-            resolve();
+
+            let periodoDetectado = null;
+            if (parsedInvoices.length > 0) {
+              const fechaStr = parsedInvoices[0].fecha; // ej "2025-06-01" o "01/06/2025"
+              if (fechaStr.includes("-")) {
+                const partes = fechaStr.split("-");
+                periodoDetectado = `${partes[0]}-${partes[1]}`;
+              } else if (fechaStr.includes("/")) {
+                const partes = fechaStr.split("/");
+                periodoDetectado = `${partes[2]}-${partes[1]}`;
+              }
+            }
+            resolve(periodoDetectado);
           } catch (error) {
             console.error(error);
             alert("Error al importar ventas.");
