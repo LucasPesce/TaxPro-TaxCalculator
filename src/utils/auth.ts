@@ -5,7 +5,8 @@ export type RolUsuario =
   | 'Gerente'
   | 'Administrador General';
 
-export type Modulo = 'Usuarios' | 'Auditoria' | 'Dashboard' | 'Operaciones';
+export type Modulo = 'Usuarios' | 'Auditoria' | 'Dashboard';
+export type Accion = 'Liquidar' | 'EliminarProceso' | 'CargarDatos';
 
 export const checkAccess = (rol: string | undefined, modulo: Modulo): boolean => {
   if (rol === 'Administrador General') return true; // El Admin Gral ve TODO
@@ -13,7 +14,7 @@ export const checkAccess = (rol: string | undefined, modulo: Modulo): boolean =>
   switch (modulo) {
     case 'Usuarios':
       // Solo Admin de Usuarios y Gerente
-      return ['Administrador de Usuarios', 'Gerente'].includes(rol as string);
+      return ['Asistente Contable', 'Supervisor', 'Gerente'].includes(rol as string);
       
     case 'Auditoria':
       // Solo Supervisor
@@ -21,16 +22,30 @@ export const checkAccess = (rol: string | undefined, modulo: Modulo): boolean =>
       
     case 'Dashboard':
       // Supervisor y Gerente
-      return ['Supervisor', 'Gerente'].includes(rol as string);
-      
-    case 'Operaciones':
-      // Son las facturas, clientes, iibb. Acceden todos MENOS el Admin de Usuarios
-      return ['Asistente Contable', 'Supervisor', 'Gerente'].includes(rol as string);
-      
+      return ['Gerente'].includes(rol as string);
+            
     default:
       return false;
   }
 };
+
+export const checkAction = (rol: string | undefined, accion: Accion): boolean => {
+  if (rol === 'Administrador General') return true;
+
+  switch (accion) {
+    case 'CargarDatos':
+      return ['Asistente Contable', 'Supervisor'].includes(rol as string);
+      
+    case 'Liquidar':
+      return ['Supervisor'].includes(rol as string);
+      
+    case 'EliminarProceso':
+      return ['Gerente'].includes(rol as string);
+
+    default:
+      return false;
+  }
+}
 
 // Función para obtener el usuario actual del LocalStorage
 export const getCurrentUser = () => {

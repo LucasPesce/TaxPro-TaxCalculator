@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { useState } from 'react';
 import { EditPurchaseModal } from './components/EditPurchaseModal/EditPurchaseModal';
-import { faPlus } from '@fortawesome/free-solid-svg-icons'; // Icono más
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { checkAction, getCurrentUser } from '../../utils/auth';
 
 import './IvaComprasPage.css';
 
@@ -22,6 +21,9 @@ import { CostTypeChart } from './components/CostTypeChart/CostTypeChart';
 
 const COLORS_IVA = ['#2196F3', '#db0012']; // Verde correcto, Rojo error
 const COLORS_RECO = ['#2196F3', '#e0e0e0'];   // Azul para índice, gris fondo
+
+const currentUser = getCurrentUser();
+const userRol = currentUser?.rol;
 
 export const IvaComprasPage: React.FC = () => {
     // 1. Usamos el Hook
@@ -90,6 +92,8 @@ export const IvaComprasPage: React.FC = () => {
         setIsModalOpen(false);
     };
 
+    const currentUser = getCurrentUser();
+    const userRol = currentUser?.rol;
     // 3. Renderizado
     return (
         <div className="iva-compras-page">
@@ -100,7 +104,7 @@ export const IvaComprasPage: React.FC = () => {
                 modulo="compras"
                 onFileImport={handleFileImport}
                 onSearch={handleSearch}
-                hasData={allInvoices.length > 0} 
+                hasData={allInvoices.length > 0}
             />
 
             {/* Dashboard de 4 Paneles */}
@@ -144,21 +148,19 @@ export const IvaComprasPage: React.FC = () => {
                 onPageChange={setCurrentPage}
             />
             <div className="page-actions">
-                <Button
-                    variant="primary"
-                    disabled={hasErrors || allInvoices.length === 0} // Deshabilitado si hay error o tabla vacía
-                    onClick={() => {
-                        // Lógica temporal de confirmación (igual que en Ventas)
-                        const cuit = prompt("Confirmar CUIT a impactar:");
-                        const periodo = prompt("Confirmar Periodo (YYYY-MM):");
-                        if (cuit && periodo) handleImpactData(cuit, periodo);
-                    }}
-                >
-                    Impactar datos
-                </Button>
-                <Button variant="primary" onClick={openCreateModal}>
-                    <FontAwesomeIcon icon={faPlus} /> Nueva Factura
-                </Button>
+                {checkAction(userRol, 'Liquidar') && (
+                    <Button
+                        variant="primary"
+                        disabled={hasErrors || allInvoices.length === 0}
+                        onClick={() => {
+                            const cuit = prompt("Confirmar CUIT a impactar:");
+                            const periodo = prompt("Confirmar Periodo (YYYY-MM):");
+                            if (cuit && periodo) handleImpactData(cuit, periodo);
+                        }}
+                    >
+                        Impactar datos (Liquidar)
+                    </Button>
+                )}
             </div>
 
             <EditPurchaseModal

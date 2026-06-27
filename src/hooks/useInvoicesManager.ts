@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Papa from "papaparse";
 import { type Invoice } from "../types";
+import { toast } from 'sonner';
 
 //==================== DEFINICION DE TIPOS ====================
 type SortKey = keyof Invoice;
@@ -258,38 +259,46 @@ export const useInvoicesManager = () => {
   }, [invoices]);
 
   //--- FUNCION: IMPACTAR DATOS (Finalizar Proceso) ---
-  const handleImpactData = async (cuitEmpresa: string, periodo: string) => {
-    if (hasErrors) {
-      alert("No se puede impactar: Aún hay facturas con errores.");
-      return;
-    }
-    if (!cuitEmpresa || !periodo) {
-      alert(
-        "Por favor, realice una búsqueda por Empresa y Periodo antes de impactar.",
-      );
-      return;
-    }
+const handleImpactData = async (cuitEmpresa: string, periodo: string) => {
+     if (hasErrors) return toast.error("No se puede impactar: Aún hay facturas con errores.");
+     
+     try {
+         const response = await fetch("/api/facturas/impactar", {
+             method: "POST", headers: getHeaders(),
+             body: JSON.stringify({ cuitEmpresa, periodo, tipoOperacion: "IVA Ventas" }),
+         });
 
-    try {
-      const response = await fetch("/api/facturas/impactar", {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify({
-          cuitEmpresa,
-          periodo,
-          tipoOperacion: "IVA Ventas",
-        }),
-      });
+         if (!response.ok) throw new Error("Respuesta de red no fue ok");
+         
+         toast.success("¡Datos impactados correctamente! El proceso ha finalizado.");
+     } catch (error) {
+         console.error(error);
+         toast.error("Error al impactar los datos en el servidor.");
+     }
+ };
 
-      if (!response.ok) throw new Error("Error al impactar");
+  //--- FUNCION: ELIMINAR PERIODO ---
+const handleDeletePeriod = async (cuitEmpresa: string, periodo: string) => {
+     // En este caso, el confirm() de seguridad lo dejamos, pero el resto se va.
+     if (!window.confirm(`⚠️ ADVERTENCIA DE SEGURIDAD: \n\n¿Estás absolutamente seguro de eliminar TODOS los registros de Ventas del cliente ${cuitEmpresa} para el periodo ${periodo}? \n\nEsta acción es destructiva y quedará registrada en auditoría.`)) return;
 
-      alert("¡Datos impactados correctamente! El proceso ha finalizado.");
-    } catch (error) {
-      console.error(error);
-      alert("Error al impactar los datos.");
-    }
-  };
+     try {
+         const response = await fetch("/api/facturas/eliminar-periodo", {
+             method: "DELETE", headers: getHeaders(),
+             body: JSON.stringify({ cuitEmpresa, periodo, tipoOperacion: "IVA Ventas" }),
+         });
 
+         const data = await response.json();
+         if (!response.ok) throw new Error(data.error || "Error al eliminar");
+         
+         toast.success("Proceso eliminado correctamente. El periodo está vacío nuevamente.");
+         setInvoices([]); 
+     } catch (error: any) {
+         console.error(error);
+         toast.error(error.message);
+     }
+ };
+ 
   //--- RETORNO DEL HOOK ---
   return {
     invoices: paginatedInvoices,
@@ -305,5 +314,6 @@ export const useInvoicesManager = () => {
     handleUpdateInvoice,
     hasErrors,
     handleImpactData,
+    handleDeletePeriod
   };
 };
