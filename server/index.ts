@@ -462,6 +462,50 @@ for (const f of invoices) {
   }
 });
 
+// --- RUTA: ELIMINAR PROCESO COMPLETO (CU-025 - EXCLUSIVO GERENTE) ---
+app.delete("/api/facturas/eliminar-periodo", async (req, res) => {
+  const { cuitEmpresa, periodo, tipoOperacion } = req.body;
+
+  try {
+    const [year, month] = String(periodo).split("-");
+    const searchString = `/${month}/${year}`;
+    let registrosBorrados;
+    const esCompra = tipoOperacion === "IVA Compras";
+
+    if (esCompra) {
+      registrosBorrados = await prisma.facturaCompra.deleteMany({
+        where: {
+          cuitEmpresa: String(cuitEmpresa),
+          fechaImputacion: { endsWith: searchString },
+        },
+      });
+    } else {
+      registrosBorrados = await prisma.facturaVenta.deleteMany({
+        where: {
+          cuitEmpresa: String(cuitEmpresa),
+          fecha: { endsWith: searchString },
+        },
+      });
+    }
+
+    if (registrosBorrados.count === 0) {
+      return res.status(404).json({ error: "No se encontraron registros para eliminar en este periodo." });
+    }
+
+    await registrarActividad(
+      req,
+      "ELIMINACIÓN DE PROCESO",
+      esCompra ? "Lote Compras" : "Lote Ventas",
+      0,
+      `El Gerente autorizó la eliminación completa de ${registrosBorrados.count} registros del periodo ${periodo} para el CUIT ${cuitEmpresa}.`
+    );
+
+    res.json({ message: `Se eliminaron ${registrosBorrados.count} registros.` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al eliminar el periodo" });
+  }
+});
 
 app.post("/api/compras", async (req, res) => {
   const f = req.body;

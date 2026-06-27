@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar/Sidebar';
-import { Button } from './components/ui/Button/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { Toaster, toast } from 'sonner';
 import { getCurrentUser } from './utils/auth';
 import './App.css';
 
@@ -68,6 +68,7 @@ function App() {
           <Outlet />
         </div>
       </main>
+      <Toaster richColors position="top-right" />
     </div>
   );
 }
