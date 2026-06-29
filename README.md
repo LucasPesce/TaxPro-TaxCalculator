@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+# 📊 TaxPro | Plataforma de Gestión y Auditoría Fiscal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Estado](https://img.shields.io/badge/Estado-En_Desarrollo-orange)
+![React](https://img.shields.io/badge/React-19-blue?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=nodedotjs)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma)
+![SQLite](https://img.shields.io/badge/SQLite-DB-003B57?logo=sqlite)
 
-Currently, two official plugins are available:
+**TaxPro** es una aplicación web full-stack diseñada para simplificar y automatizar la gestión contable de IVA Compras e IVA Ventas. Desarrollado como **tesis de grado (Analista en Sistemas)**, este proyecto no solo digitaliza los procesos fiscales, sino que incorpora capas de seguridad, validación algorítmica de datos y trazabilidad de nivel empresarial.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## ✨ Características Principales
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* **📈 Módulos de IVA Compras y Ventas:** Importación masiva desde archivos CSV de AFIP, con parsing y mapeo de datos automático.
+* **🤖 Validación Inteligente de Datos:**
+  * Control de IVA automático para detectar inconsistencias matemáticas.
+  * Análisis de correlatividad que detecta "huecos" en la numeración de facturas y los auto-genera para su posterior edición.
+* **🔐 Sistema de Seguridad (RBAC):** Control de Acceso Basado en Roles que restringe la visibilidad de módulos y el acceso a rutas según el perfil del operador (Administrador General, Supervisor, Asistente Contable, etc.).
+* **✍️ Pista de Auditoría Integral:** Registro inmutable de todas las acciones críticas (Login, Creación, Edición, Inhabilitación y Restauración de usuarios; Importación de lotes, Cierre de periodos). El sistema registra autor (DNI, Nombre), timestamp y acción ejecutada.
+* **🗑️ Papelera de Reciclaje de Usuarios:** Implementación de "Soft Delete". Los usuarios inhabilitados permanecen en cuarentena por 30 días antes de ser purgados permanentemente por un proceso automatizado (`node-cron`).
+* **🎨 Interfaz Moderna:** Diseño limpio, funcional y responsivo. Incluye persistencia de Tema Claro/Oscuro mediante `localStorage`.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠️ Stack Tecnológico
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**Frontend:**
+* **Core:** React 19 (Vite), TypeScript.
+* **Enrutamiento:** React Router.
+* **Estilos:** CSS Modules (encapsulamiento estricto sin colisiones).
+* **Gráficos:** Recharts para visualización en dashboards.
+* **Linter:** ESLint (configuración estricta).
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Backend:**
+* **Core:** Node.js, Express (API REST).
+* **Base de Datos:** SQLite (ligera, ideal para el MVP y desarrollo).
+* **ORM:** Prisma (acceso seguro a datos y modelado).
+* **Procesos en Background:** node-cron (tareas programadas).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🚀 Instalación y Uso Local
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Para ejecutar este proyecto en un entorno de desarrollo local, requieres tener Node.js instalado. Sigue estos pasos:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+**1. Configurar el Servidor (Backend)**
+
+    cd server
+    npm install
+    npx prisma db push
+    npm run dev
+
+*(El backend inicializará la base de datos y quedará escuchando en `http://localhost:3001`)*
+
+**2. Configurar el Cliente (Frontend)**
+
+Abre una nueva terminal en la raíz del proyecto y ejecuta:
+
+    npm install
+    npm run dev
+
+*(El frontend estará disponible en `http://localhost:5173`)*
+
+---
+
+## 🔑 Credenciales de Acceso (Prueba)
+
+Una vez que ambos servidores estén corriendo, abre tu navegador en la URL del cliente para ver la pantalla de login. Puedes utilizar las siguientes credenciales con privilegios máximos:
+
+* **Usuario:** `administrador`
+* **Contraseña:** `1234`
+
+*(Nota: Este usuario posee el rol de Administrador General. Puedes crear perfiles adicionales desde la sección "Gestión de Usuarios").*
+
+---
+
+## 🔮 Roadmap y Próximas Mejoras
+
+- [ ] Implementar módulos de liquidación de IIBB y Ganancias.
+- [ ] Desarrollar dashboards analíticos para Supervisores y Gerentes.
+- [ ] Refactorizar la gestión del estado global con TanStack Query para optimizar el cacheo.
+- [ ] Migrar la autenticación a JWT reales (JSON Web Tokens) y hashing con bcrypt.
+- [ ] Cobertura de código con tests unitarios y de integración.
+
+---
+*Desarrollado con dedicación para la Tesis Final de Grado.*
