@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Papa from "papaparse";
 import { type Invoice } from "../types";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
 //==================== DEFINICION DE TIPOS ====================
 type SortKey = keyof Invoice;
@@ -82,10 +82,16 @@ export const useInvoicesManager = () => {
   ): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
-        header: true, // 🚨 AHORA LEE LOS TÍTULOS DE AFIP DIRECTAMENTE
+        header: true,
         skipEmptyLines: true,
         complete: async (results) => {
-          console.log("Filas crudas leídas del CSV:", results.data); // 🚨 CONTROL: Ver qué leyó del archivo
+          // 🚨 CONTROL: Si el archivo está vacío o no tiene formato
+          if (!results.data || results.data.length === 0) {
+            toast.warning(
+              "El archivo CSV está vacío o no tiene el formato correcto.",
+            );
+            return resolve(null); // Cortamos la ejecución sin error fatal
+          }
 
           const parsedInvoices = results.data.map((row: any) => {
             const ptoVenta = (row["Punto de Venta"] || "0")
@@ -113,7 +119,6 @@ export const useInvoicesManager = () => {
               denominacionReceptor: row["Denominación Receptor"] || "",
               tipoCambio: parseMoney(row["Tipo Cambio"]) || 1,
               moneda: row["Moneda"] || "PES",
-
               netoGravado0: parseMoney(row["Imp. Neto Gravado IVA 0%"]),
               iva25: parseMoney(row["IVA 2,5%"]),
               netoGravado25: parseMoney(row["Imp. Neto Gravado IVA 2,5%"]),
@@ -134,17 +139,95 @@ export const useInvoicesManager = () => {
             };
           });
 
+          // 🚨 NUEVA LÓGICA DE CONTROL DE MESES MEZCLADOS 🚨
+          if (parsedInvoices.length === 0) return resolve(null);
+
+          // Función para extraer el periodo (YYYY-MM) de una fecha
+          const extractPeriod = (dateStr: string) => {
+            if (!dateStr) return null;
+            if (dateStr.includes("-"))
+              return `${dateStr.split("-")[0]}-${dateStr.split("-")[1]}`;
+            if (dateStr.includes("/"))
+              return `${dateStr.split("/")[2]}-${dateStr.split("/")[1]}`;
+            return null;
+          };
+
+          // Detectamos el mes de la primera factura del archivo
+          const targetPeriod = extractPeriod(parsedInvoices[0].fecha);
+          let omittedWrongMonth = 0;
+
+          // Filtramos: Solo nos quedamos con las facturas que coincidan con el targetPeriod
+          const validInvoices = parsedInvoices.filter((inv: any) => {
+            if (extractPeriod(inv.fecha) === targetPeriod) return true;
+            omittedWrongMonth++;
+            return false;
+          });
+
+          if (validInvoices.length === 0) {
+            toast.error("No se encontraron facturas válidas en el archivo.");
+            return resolve(null);
+          }
+
           try {
             const response = await fetch("/api/facturas/lote", {
               method: "POST",
-              headers: getHeaders(), // 🚨 ESTO ES LO QUE REGISTRA LA AUDITORÍA
+              headers: getHeaders(),
+              // Solo enviamos las válidas al backend
               body: JSON.stringify({
-                invoices: parsedInvoices,
+                invoices: validInvoices,
                 cuitEmpresa,
                 nombreEmpresa,
               }),
             });
-            if (!response.ok) throw new Error("Error en servidor");
+
+            const responseData = await response.json();
+            if (!response.ok)
+              throw new Error(responseData.error || "Error en servidor");
+
+            // 🚨 LÓGICA DE MENSAJES ACTUALIZADA 🚨
+            let mensaje =
+              responseData.insertadas > 0
+                ? `Se importaron ${responseData.insertadas} comprobantes del periodo ${targetPeriod}.`
+                : `El periodo ${targetPeriod} ya estaba cargado.`;
+
+            if (responseData.ignoradas > 0)
+              mensaje += ` Se omitieron ${responseData.ignoradas} duplicados.`;
+            // Avisamos si descartamos de otros meses
+            if (omittedWrongMonth > 0)
+              mensaje += ` ⚠️ Se omitieron ${omittedWrongMonth} comprobantes por corresponder a otro periodo.`;
+
+            if (responseData.insertadas === 0 && responseData.ignoradas > 0) {
+              toast.warning(mensaje);
+            } else if (omittedWrongMonth > 0) {
+              toast.warning(mensaje); // Amarillo si hubo mezcla de meses
+            } else {
+              toast.success(mensaje); // Verde si todo fue perfecto
+            }
+
+            if (responseData.huecos > 0) {
+              toast.info(
+                `El sistema autogeneró ${responseData.huecos} facturas faltantes por saltos de correlatividad.`,
+              );
+            }
+            if (!response.ok)
+              throw new Error(responseData.error || "Error en servidor");
+
+            // 🚨 LÓGICA DE MENSAJES INTELIGENTES 🚨
+            if (responseData.insertadas === 0 && responseData.ignoradas > 0) {
+              toast.warning(
+                `Periodo ya cargado: Se omitieron ${responseData.ignoradas} comprobantes porque ya existían en el sistema.`,
+              );
+            } else {
+              toast.success(
+                `Se importaron ${responseData.insertadas} comprobantes nuevos. ${responseData.ignoradas > 0 ? `(${responseData.ignoradas} omitidos por estar duplicados).` : ""}`,
+              );
+            }
+
+            if (responseData.huecos > 0) {
+              toast.info(
+                `El sistema autogeneró ${responseData.huecos} facturas faltantes por saltos de correlatividad.`,
+              );
+            }
 
             let periodoDetectado = null;
             if (parsedInvoices.length > 0) {
@@ -259,46 +342,66 @@ export const useInvoicesManager = () => {
   }, [invoices]);
 
   //--- FUNCION: IMPACTAR DATOS (Finalizar Proceso) ---
-const handleImpactData = async (cuitEmpresa: string, periodo: string) => {
-     if (hasErrors) return toast.error("No se puede impactar: Aún hay facturas con errores.");
-     
-     try {
-         const response = await fetch("/api/facturas/impactar", {
-             method: "POST", headers: getHeaders(),
-             body: JSON.stringify({ cuitEmpresa, periodo, tipoOperacion: "IVA Ventas" }),
-         });
+  const handleImpactData = async (cuitEmpresa: string, periodo: string) => {
+    if (hasErrors)
+      return toast.error("No se puede impactar: Aún hay facturas con errores.");
 
-         if (!response.ok) throw new Error("Respuesta de red no fue ok");
-         
-         toast.success("¡Datos impactados correctamente! El proceso ha finalizado.");
-     } catch (error) {
-         console.error(error);
-         toast.error("Error al impactar los datos en el servidor.");
-     }
- };
+    try {
+      const response = await fetch("/api/facturas/impactar", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          cuitEmpresa,
+          periodo,
+          tipoOperacion: "IVA Ventas",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Respuesta de red no fue ok");
+
+      toast.success(
+        "¡Datos impactados correctamente! El proceso ha finalizado.",
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al impactar los datos en el servidor.");
+    }
+  };
 
   //--- FUNCION: ELIMINAR PERIODO ---
-const handleDeletePeriod = async (cuitEmpresa: string, periodo: string) => {
-     // En este caso, el confirm() de seguridad lo dejamos, pero el resto se va.
-     if (!window.confirm(`⚠️ ADVERTENCIA DE SEGURIDAD: \n\n¿Estás absolutamente seguro de eliminar TODOS los registros de Ventas del cliente ${cuitEmpresa} para el periodo ${periodo}? \n\nEsta acción es destructiva y quedará registrada en auditoría.`)) return;
+  const handleDeletePeriod = async (cuitEmpresa: string, periodo: string) => {
+    // En este caso, el confirm() de seguridad lo dejamos, pero el resto se va.
+    if (
+      !window.confirm(
+        `⚠️ ADVERTENCIA DE SEGURIDAD: \n\n¿Estás absolutamente seguro de eliminar TODOS los registros de Ventas del cliente ${cuitEmpresa} para el periodo ${periodo}? \n\nEsta acción es destructiva y quedará registrada en auditoría.`,
+      )
+    )
+      return;
 
-     try {
-         const response = await fetch("/api/facturas/eliminar-periodo", {
-             method: "DELETE", headers: getHeaders(),
-             body: JSON.stringify({ cuitEmpresa, periodo, tipoOperacion: "IVA Ventas" }),
-         });
+    try {
+      const response = await fetch("/api/facturas/eliminar-periodo", {
+        method: "DELETE",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          cuitEmpresa,
+          periodo,
+          tipoOperacion: "IVA Ventas",
+        }),
+      });
 
-         const data = await response.json();
-         if (!response.ok) throw new Error(data.error || "Error al eliminar");
-         
-         toast.success("Proceso eliminado correctamente. El periodo está vacío nuevamente.");
-         setInvoices([]); 
-     } catch (error: any) {
-         console.error(error);
-         toast.error(error.message);
-     }
- };
- 
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Error al eliminar");
+
+      toast.success(
+        "Proceso eliminado correctamente. El periodo está vacío nuevamente.",
+      );
+      setInvoices([]);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message);
+    }
+  };
+
   //--- RETORNO DEL HOOK ---
   return {
     invoices: paginatedInvoices,
@@ -314,6 +417,6 @@ const handleDeletePeriod = async (cuitEmpresa: string, periodo: string) => {
     handleUpdateInvoice,
     hasErrors,
     handleImpactData,
-    handleDeletePeriod
+    handleDeletePeriod,
   };
 };

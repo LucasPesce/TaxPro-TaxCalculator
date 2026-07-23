@@ -5,6 +5,7 @@ import { Card } from '../Card/Card';
 import { Button } from '../Button/Button';
 import { Select } from '../Select/Select';
 import styles from './FiltersSection.module.css';
+import { toast } from 'sonner';
 
 interface FiltersSectionProps {
     modulo: 'ventas' | 'compras';
@@ -63,10 +64,9 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
     }, []);
 
     useEffect(() => {
-        if (hasSearched && selectedCuit && selectedPeriod) {
+        if (hasSearched && selectedCuit) {
             onSearch(selectedCuit, selectedPeriod);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedCuit, selectedPeriod]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,6 +118,11 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
     };
 
     const handleSearchClick = () => {
+        // 🚨 VALIDACIÓN: Exigir empresa obligatoriamente
+        if (!selectedCuit) {
+            return toast.warning("Por favor, seleccione una Empresa a liquidar para poder buscar.");
+        }
+
         setHasSearched(true);
         onSearch(selectedCuit, selectedPeriod);
     };
