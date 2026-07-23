@@ -68,8 +68,17 @@ function App() {
           <Outlet />
         </div>
       </main>
-      <Toaster richColors position="top-right" />
-    </div>
+      <Toaster
+        richColors
+        position="top-right"
+        toastOptions={{
+          style: {
+            backgroundColor: 'var(--sidebar-bg-color)', // Fondo marino en oscuro, blanco en claro
+            color: 'var(--text-color)', // Texto visible
+            borderColor: 'var(--border-color)', // Bordes consistentes
+          }
+        }}
+      />    </div>
   );
 }
 

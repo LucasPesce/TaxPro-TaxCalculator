@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Papa from "papaparse";
 import { type PurchaseInvoice } from "../types";
+import { toast } from "sonner";
 
 type SortKey = keyof PurchaseInvoice;
 type SortDirection = "ascending" | "descending";
@@ -108,7 +109,13 @@ export const useIvaComprasManager = () => {
         header: true,
         skipEmptyLines: true,
         complete: async (results) => {
-          console.log("Filas de compras leídas del CSV:", results.data);
+          // 🚨 CONTROL DE ARCHIVO VACÍO
+          if (!results.data || results.data.length === 0) {
+            toast.warning(
+              "El archivo CSV está vacío o no tiene el formato correcto.",
+            );
+            return resolve(null);
+          }
 
           const parsedInvoices = results.data.map((row: any) => {
             const ptoVenta = (row["Punto de Venta"] || "0")
@@ -123,7 +130,7 @@ export const useIvaComprasManager = () => {
               cuitEmpresa,
               nombreEmpresa,
               fechaEmision: row["Fecha de Emisión"] || "",
-              fechaImputacion: row["Fecha de Emisión"] || "", // Por defecto imputa el mismo mes de emisión
+              fechaImputacion: row["Fecha de Emisión"] || "",
               tipoComprobante: row["Tipo de Comprobante"] || "",
               puntoVenta: ptoVenta,
               numeroDesde: nroDesde,
@@ -137,8 +144,6 @@ export const useIvaComprasManager = () => {
               proveedor: row["Denominación Emisor"] || "",
               tipoCambio: parseMoney(row["Tipo Cambio"]) || 1,
               moneda: row["Moneda"] || "PES",
-
-              // Importes
               montoGravado: parseMoney(row["Imp. Neto Gravado"]),
               netoNoGravado: parseMoney(row["Imp. Neto No Gravado"]),
               exento: parseMoney(row["Imp. Op. Exentas"]),
@@ -148,20 +153,85 @@ export const useIvaComprasManager = () => {
             };
           });
 
+          // 🚨 NUEVA LÓGICA DE CONTROL DE MESES MEZCLADOS 🚨
+          if (parsedInvoices.length === 0) return resolve(null);
+
+          const extractPeriod = (dateStr: string) => {
+            if (!dateStr) return null;
+            if (dateStr.includes("-"))
+              return `${dateStr.split("-")[0]}-${dateStr.split("-")[1]}`;
+            if (dateStr.includes("/"))
+              return `${dateStr.split("/")[2]}-${dateStr.split("/")[1]}`;
+            return null;
+          };
+
+          // En compras usamos la fecha de imputación
+          const targetPeriod = extractPeriod(parsedInvoices[0].fechaImputacion);
+          let omittedWrongMonth = 0;
+
+          const validInvoices = parsedInvoices.filter((inv: any) => {
+            if (extractPeriod(inv.fechaImputacion) === targetPeriod)
+              return true;
+            omittedWrongMonth++;
+            return false;
+          });
+
+          if (validInvoices.length === 0) {
+            toast.error("No se encontraron compras válidas en el archivo.");
+            return resolve(null);
+          }
+
           try {
             const response = await fetch("/api/compras/lote", {
               method: "POST",
               headers: getHeaders(),
+              // Solo enviamos las válidas al backend
               body: JSON.stringify({
-                invoices: parsedInvoices,
+                invoices: validInvoices,
                 cuitEmpresa,
                 nombreEmpresa,
               }),
             });
 
-            if (!response.ok) throw new Error("Error en servidor");
+            const responseData = await response.json();
+            if (!response.ok)
+              throw new Error(responseData.error || "Error en servidor");
+
+            // 🚨 LÓGICA DE MENSAJES ACTUALIZADA 🚨
+            let mensaje =
+              responseData.insertadas > 0
+                ? `Se importaron ${responseData.insertadas} compras del periodo ${targetPeriod}.`
+                : `El periodo ${targetPeriod} ya estaba cargado.`;
+
+            if (responseData.ignoradas > 0)
+              mensaje += ` Se omitieron ${responseData.ignoradas} duplicados.`;
+            // Avisamos si descartamos de otros meses
+            if (omittedWrongMonth > 0)
+              mensaje += ` ⚠️ Se omitieron ${omittedWrongMonth} comprobantes por corresponder a otro periodo.`;
+
+            if (responseData.insertadas === 0 && responseData.ignoradas > 0) {
+              toast.warning(mensaje);
+            } else if (omittedWrongMonth > 0) {
+              toast.warning(mensaje);
+            } else {
+              toast.success(mensaje);
+            }
+            if (!response.ok)
+              throw new Error(responseData.error || "Error en servidor");
+
+            // 🚨 LÓGICA DE MENSAJES INTELIGENTES 🚨
+            if (responseData.insertadas === 0 && responseData.ignoradas > 0) {
+              toast.warning(
+                `Periodo ya cargado: Se omitieron ${responseData.ignoradas} compras porque ya existían en el sistema.`,
+              );
+            } else {
+              toast.success(
+                `Se importaron ${responseData.insertadas} compras nuevas. ${responseData.ignoradas > 0 ? `(${responseData.ignoradas} omitidas por estar duplicadas).` : ""}`,
+              );
+            }
 
             let periodoDetectado = null;
+
             if (parsedInvoices.length > 0) {
               const fechaStr = parsedInvoices[0].fechaImputacion;
               if (fechaStr.includes("-")) {

@@ -152,9 +152,12 @@ app.post("/api/facturas/lote", async (req, res) => {
     }
 
     // --- REVISIÓN DE CORRELATIVIDAD  ---
-    const facturasAnalisis = await prisma.facturaVenta.findMany({ where: { cuitEmpresa: cuitActual }, orderBy: { numeroFactura: "asc" } });
+    const facturasAnalisis = await prisma.facturaVenta.findMany({
+      where: { cuitEmpresa: cuitActual },
+      orderBy: { numeroFactura: "asc" },
+    });
     const gruposSeries: Record<string, typeof facturasAnalisis> = {};
-    
+
     facturasAnalisis.forEach((f) => {
       if (!f.numeroFactura || !f.numeroFactura.includes("-")) return;
       const claveGrupo = `${f.puntoVenta}|${f.tipoComprobante}`;
@@ -166,7 +169,7 @@ app.post("/api/facturas/lote", async (req, res) => {
 
     for (const clave in gruposSeries) {
       const [ptoVentaStr, tipoCompStr] = clave.split("|");
-      
+
       // Ordenamos las facturas del lote actual de menor a mayor
       const numerosOrdenados = gruposSeries[clave]
         .map((f) => parseInt(f.numeroDesde, 10))
@@ -184,30 +187,44 @@ app.post("/api/facturas/lote", async (req, res) => {
           tipoComprobante: tipoCompStr,
           // Evitamos buscar las que son del lote actual
           numeroDesde: {
-            lt: String(primerNumeroLote).padStart(8, "0")
-          }
+            lt: String(primerNumeroLote).padStart(8, "0"),
+          },
         },
-        orderBy: { numeroDesde: 'desc' } // Trae la más alta disponible
+        orderBy: { numeroDesde: "desc" }, // Trae la más alta disponible
       });
 
       if (ultimaHistorica) {
         const ultimoNumeroHistorico = parseInt(ultimaHistorica.numeroDesde, 10);
-        
+
         // Si hay un hueco entre la última histórica y la primera del nuevo lote, lo rellenamos
         if (primerNumeroLote > ultimoNumeroHistorico + 1) {
-          console.log(`⚠️ Hueco Inter-Período detectado entre Nro ${ultimoNumeroHistorico} y Nro ${primerNumeroLote}`);
+          console.log(
+            `⚠️ Hueco Inter-Período detectado entre Nro ${ultimoNumeroHistorico} y Nro ${primerNumeroLote}`,
+          );
           for (let j = ultimoNumeroHistorico + 1; j < primerNumeroLote; j++) {
             const nroFaltanteStr = String(j).padStart(8, "0");
             const nroCompleto = `${ptoVentaStr}-${nroFaltanteStr}`;
 
-            const existeHueco = await prisma.facturaVenta.findFirst({ where: { cuitEmpresa: cuitActual, numeroFactura: nroCompleto }});
+            const existeHueco = await prisma.facturaVenta.findFirst({
+              where: { cuitEmpresa: cuitActual, numeroFactura: nroCompleto },
+            });
             if (!existeHueco) {
               await prisma.facturaVenta.create({
                 data: {
-                  cuitEmpresa: cuitActual, nombreEmpresa: String(nombreEmpresa), 
-                  denominacionReceptor: "--- FACTURA FALTANTE ---", nroDocReceptor: "0", tipoDocReceptor: "0",
-                  tipoComprobante: tipoCompStr, puntoVenta: ptoVentaStr, numeroDesde: nroFaltanteStr, numeroHasta: nroFaltanteStr,
-                  numeroFactura: nroCompleto, codAutorizacion: "", moneda: "PES", tipoCambio: 1, fecha: "",
+                  cuitEmpresa: cuitActual,
+                  nombreEmpresa: String(nombreEmpresa),
+                  denominacionReceptor: "--- FACTURA FALTANTE ---",
+                  nroDocReceptor: "0",
+                  tipoDocReceptor: "0",
+                  tipoComprobante: tipoCompStr,
+                  puntoVenta: ptoVentaStr,
+                  numeroDesde: nroFaltanteStr,
+                  numeroHasta: nroFaltanteStr,
+                  numeroFactura: nroCompleto,
+                  codAutorizacion: "",
+                  moneda: "PES",
+                  tipoCambio: 1,
+                  fecha: "",
                 },
               });
               huecosGenerados++;
@@ -226,16 +243,28 @@ app.post("/api/facturas/lote", async (req, res) => {
             for (let j = actual + 1; j < siguiente; j++) {
               const nroFaltanteStr = String(j).padStart(8, "0");
               const nroCompleto = `${ptoVentaStr}-${nroFaltanteStr}`;
-              
-              const existeHueco = await prisma.facturaVenta.findFirst({ where: { cuitEmpresa: cuitActual, numeroFactura: nroCompleto }});
-              
+
+              const existeHueco = await prisma.facturaVenta.findFirst({
+                where: { cuitEmpresa: cuitActual, numeroFactura: nroCompleto },
+              });
+
               if (!existeHueco) {
                 await prisma.facturaVenta.create({
                   data: {
-                    cuitEmpresa: cuitActual, nombreEmpresa: String(nombreEmpresa), 
-                    denominacionReceptor: "--- FACTURA FALTANTE ---", nroDocReceptor: "0", tipoDocReceptor: "0",
-                    tipoComprobante: tipoCompStr, puntoVenta: ptoVentaStr, numeroDesde: nroFaltanteStr, numeroHasta: nroFaltanteStr,
-                    numeroFactura: nroCompleto, codAutorizacion: "", moneda: "PES", tipoCambio: 1, fecha: "",
+                    cuitEmpresa: cuitActual,
+                    nombreEmpresa: String(nombreEmpresa),
+                    denominacionReceptor: "--- FACTURA FALTANTE ---",
+                    nroDocReceptor: "0",
+                    tipoDocReceptor: "0",
+                    tipoComprobante: tipoCompStr,
+                    puntoVenta: ptoVentaStr,
+                    numeroDesde: nroFaltanteStr,
+                    numeroHasta: nroFaltanteStr,
+                    numeroFactura: nroCompleto,
+                    codAutorizacion: "",
+                    moneda: "PES",
+                    tipoCambio: 1,
+                    fecha: "",
                   },
                 });
                 huecosGenerados++;
@@ -245,7 +274,6 @@ app.post("/api/facturas/lote", async (req, res) => {
         }
       }
     }
-                                                                                   
 
     if (huecosGenerados > 0) {
       await registrarActividad(
@@ -257,14 +285,11 @@ app.post("/api/facturas/lote", async (req, res) => {
       );
     }
 
-    res
-      .status(201)
-      .json(
-        await prisma.facturaVenta.findMany({
-          where: { cuitEmpresa: cuitActual },
-          orderBy: { numeroFactura: "asc" },
-        }),
-      );
+    res.status(201).json({
+      insertadas: facturasInsertadas,
+      ignoradas: invoices.length - facturasInsertadas,
+      huecos: huecosGenerados,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al procesar el lote" });
@@ -388,12 +413,12 @@ app.post("/api/compras/lote", async (req, res) => {
   try {
     const cuitActual = String(cuitEmpresa);
     let comprasInsertadas = 0;
-    const periodoMuestra = invoices.length > 0 ? invoices[0].fechaImputacion.substring(3) : "Desconocido";
+    const periodoMuestra =
+      invoices.length > 0
+        ? invoices[0].fechaImputacion.substring(3)
+        : "Desconocido";
 
-    console.log(`📥 Recibida petición de importación de Compras para CUIT: ${cuitActual}`);
-    console.log(`📊 Cantidad de facturas enviadas por el navegador: ${invoices.length}`);
-
-for (const f of invoices) {
+    for (const f of invoices) {
       // 🚨 CORRECCIÓN: Cambiamos f.nro por f.numeroFactura en todo el bloque
       const existe = await prisma.facturaCompra.findFirst({
         where: {
@@ -404,7 +429,9 @@ for (const f of invoices) {
       });
 
       if (existe) {
-        console.log(`⚠️ Ignorada por duplicada (Ya existe en BD): Nro: "${f.numeroFactura}"`);
+        console.log(
+          `⚠️ Ignorada por duplicada (Ya existe en BD): Nro: "${f.numeroFactura}"`,
+        );
       }
 
       if (!existe) {
@@ -451,11 +478,10 @@ for (const f of invoices) {
       );
     }
 
-    const comprasDelCliente = await prisma.facturaCompra.findMany({
-      where: { cuitEmpresa: cuitActual },
-      orderBy: { fechaImputacion: "asc" },
+    res.status(201).json({
+      insertadas: comprasInsertadas,
+      ignoradas: invoices.length - comprasInsertadas,
     });
-    res.status(201).json(comprasDelCliente);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error procesando compras" });
@@ -489,7 +515,9 @@ app.delete("/api/facturas/eliminar-periodo", async (req, res) => {
     }
 
     if (registrosBorrados.count === 0) {
-      return res.status(404).json({ error: "No se encontraron registros para eliminar en este periodo." });
+      return res.status(404).json({
+        error: "No se encontraron registros para eliminar en este periodo.",
+      });
     }
 
     await registrarActividad(
@@ -497,10 +525,12 @@ app.delete("/api/facturas/eliminar-periodo", async (req, res) => {
       "ELIMINACIÓN DE PROCESO",
       esCompra ? "Lote Compras" : "Lote Ventas",
       0,
-      `El Gerente autorizó la eliminación completa de ${registrosBorrados.count} registros del periodo ${periodo} para el CUIT ${cuitEmpresa}.`
+      `El Gerente autorizó la eliminación completa de ${registrosBorrados.count} registros del periodo ${periodo} para el CUIT ${cuitEmpresa}.`,
     );
 
-    res.json({ message: `Se eliminaron ${registrosBorrados.count} registros.` });
+    res.json({
+      message: `Se eliminaron ${registrosBorrados.count} registros.`,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al eliminar el periodo" });
@@ -560,8 +590,10 @@ app.put("/api/compras/:id", async (req, res) => {
   const datos = req.body;
 
   try {
-    const registroAnterior = await prisma.facturaCompra.findUnique({ where: { id }});
-    
+    const registroAnterior = await prisma.facturaCompra.findUnique({
+      where: { id },
+    });
+
     const actualizada = await prisma.facturaCompra.update({
       where: { id },
       data: {
@@ -593,8 +625,8 @@ app.put("/api/compras/:id", async (req, res) => {
       "FacturaCompra",
       id,
       `Se editó la compra: ${actualizada.numeroFactura}`,
-      registroAnterior, 
-      actualizada
+      registroAnterior,
+      actualizada,
     );
 
     res.json(actualizada);
