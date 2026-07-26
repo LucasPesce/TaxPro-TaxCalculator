@@ -99,11 +99,7 @@ export const useIvaComprasManager = () => {
   }, []);
 
   // --- IMPORTACIÓN ADAPTADA AL CSV DE AFIP ---
-  const handleFileImport = async (
-    file: File,
-    cuitEmpresa: string,
-    nombreEmpresa: string,
-  ): Promise<string | null> => {
+const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: string, ignoreWarning: boolean = false): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
@@ -190,6 +186,7 @@ export const useIvaComprasManager = () => {
                 invoices: validInvoices,
                 cuitEmpresa,
                 nombreEmpresa,
+                ignoreWarning,
               }),
             });
 

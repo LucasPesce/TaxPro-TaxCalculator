@@ -75,11 +75,7 @@ export const useInvoicesManager = () => {
   };
 
   //--- FUNCION: IMPORTACION Y PROCESAMIENTO DE ARCHIVO CSV ---
-  const handleFileImport = async (
-    file: File,
-    cuitEmpresa: string,
-    nombreEmpresa: string,
-  ): Promise<string | null> => {
+const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: string, ignoreWarning: boolean = false): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
@@ -177,6 +173,7 @@ export const useInvoicesManager = () => {
                 invoices: validInvoices,
                 cuitEmpresa,
                 nombreEmpresa,
+                ignoreWarning,
               }),
             });
 

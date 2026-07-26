@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 interface FiltersSectionProps {
     modulo: 'ventas' | 'compras';
-    onFileImport: (file: File, cuit: string, nombre: string) => Promise<string | null>;
+    onFileImport: (file: File, cuit: string, nombre: string, ignoreWarning: boolean) => Promise<string | null>;
     onSearch: (searchTerm: string, period: string) => void;
     hasData: boolean;
 }
@@ -81,44 +81,87 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
     };
 
     const handleImportClick = async () => {
-        if (!selectedFile) {
-            return alert('Por favor, selecciona un archivo CSV primero.');
-        }
-        // 🚨 CAMBIO 1: Ya no exigimos que seleccione periodo
-        if (!selectedCuit) {
-            return alert('Para importar, primero debes seleccionar la Empresa a liquidar.');
-        }
+        if (!selectedFile) return alert('Por favor, selecciona un archivo CSV primero.');
+        if (!selectedCuit) return alert('Para importar, primero debes seleccionar una Empresa a liquidar.');
 
-        setIsImporting(true);
-        const entidad = entidades.find(e => e.cuit === selectedCuit);
-        const nombreEmpresa = entidad?.razonSocial || 'Desconocido';
+const cleanCuit = selectedCuit.replace(/\D/g, ""); 
+        let ignoreWarning = false;
 
-        try {
-            // 🚨 CAMBIO 2: Capturamos el periodo que detectó el hook
-            const detectedPeriod = await onFileImport(selectedFile, selectedCuit, nombreEmpresa);
+        // Función interna para proceder con la carga real
+        const proceedWithImport = async (ignore: boolean) => {
+            setIsImporting(true);
+            const entidad = entidades.find(e => e.cuit === selectedCuit);
+            const nombreEmpresa = entidad?.razonSocial || 'Desconocido';
 
-            if (detectedPeriod) {
-                // Actualizamos el selector al mes detectado y buscamos automáticamente
-                setSelectedPeriod(detectedPeriod);
-                setHasSearched(true);
-                onSearch(selectedCuit, detectedPeriod);
+            try {
+                const detectedPeriod = await onFileImport(selectedFile, selectedCuit, nombreEmpresa, ignore);
+
+                if (detectedPeriod) {
+                    setSelectedPeriod(detectedPeriod);
+                    setHasSearched(true);
+                    onSearch(selectedCuit, detectedPeriod);
+                }
+
+                setSelectedFile(null);
+                setFileName('Ningún archivo seleccionado');
+                const fileInput = document.getElementById('csv-importer') as HTMLInputElement;
+                if (fileInput) fileInput.value = '';
+
+            } catch (error) {
+                console.error("Error durante la importación:", error);
+            } finally {
+                setIsImporting(false);
             }
+        };
 
-            // Limpiamos los inputs del archivo
-            setSelectedFile(null);
-            setFileName('Ningún archivo seleccionado');
-            const fileInput = document.getElementById('csv-importer') as HTMLInputElement;
-            if (fileInput) fileInput.value = '';
-
-        } catch (error) {
-            console.error("Error durante la importación:", error);
-        } finally {
-            setIsImporting(false);
+        // 🚨 CONTROL DE CUIT EN NOMBRE DE ARCHIVO
+        if (!selectedFile.name.includes(cleanCuit)) {
+            // Desplegamos un Toast interactivo que se queda fijo hasta que el usuario responda
+            toast.warning(
+                <div>
+                    <p style={{ fontWeight: 'bold', margin: '0 0 8px 0' }}>⚠️ ALERTA DE COINCIDENCIA DE CUIT</p>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>
+                        El archivo <strong>{selectedFile.name}</strong> NO contiene el CUIT de la empresa seleccionada ({cleanCuit}).
+                    </p>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                        (Ignorar esta alerta quedará registrado en auditoría).
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <Button 
+                            variant="secondary" 
+                            style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                            onClick={() => {
+                                toast.dismiss(); // Cierra el toast
+                                setSelectedFile(null);
+                                setFileName('Ningún archivo seleccionado');
+                                const fileInput = document.getElementById('csv-importer') as HTMLInputElement;
+                                if (fileInput) fileInput.value = '';
+                            }}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            variant="primary" 
+                            style={{ padding: '4px 8px', fontSize: '0.8rem', backgroundColor: '#d32f2f', borderColor: '#d32f2f' }}
+                            onClick={() => {
+                                toast.dismiss(); // Cierra el toast
+                                proceedWithImport(true); // Procede enviando ignoreWarning = true
+                            }}
+                        >
+                            Importar Igualmente
+                        </Button>
+                    </div>
+                </div>, 
+                { duration: Infinity, style: { width: '400px' } } // Infinity = no se cierra solo, style = lo hace un poco más ancho
+            );
+            return; // Cortamos la ejecución aquí, la respuesta del usuario lanzará el proceedWithImport
         }
+
+        // Si el archivo SÍ tiene el CUIT en el nombre, procedemos normal y directo
+        proceedWithImport(false);
     };
 
     const handleSearchClick = () => {
-        // 🚨 VALIDACIÓN: Exigir empresa obligatoriamente
         if (!selectedCuit) {
             return toast.warning("Por favor, seleccione una Empresa a liquidar para poder buscar.");
         }
