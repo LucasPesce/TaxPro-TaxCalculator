@@ -86,15 +86,19 @@ app.get("/api/facturas", async (req, res) => {
 });
 
 app.post("/api/facturas/lote", async (req, res) => {
-  const { invoices, cuitEmpresa, nombreEmpresa } = req.body;
+  const { invoices, cuitEmpresa, nombreEmpresa, ignoreWarning } = req.body;
   if (!invoices || !Array.isArray(invoices))
     return res.status(400).json({ error: "Datos inválidos." });
 
   try {
     const cuitActual = String(cuitEmpresa);
     let facturasInsertadas = 0;
-    const periodoMuestra =
-      invoices.length > 0 ? invoices[0].fecha.substring(3) : "Desconocido";
+    let periodoMuestra = "Desconocido";
+    if (invoices.length > 0 && invoices[0].fecha) {
+        const f = invoices[0].fecha;
+        if (f.includes('-')) periodoMuestra = `${f.split('-')[0]}-${f.split('-')[1]}`; // Extrae "2025-08" de "2025-08-01"
+        else if (f.includes('/')) periodoMuestra = `${f.split('/')[2]}-${f.split('/')[1]}`; // Extrae "2025-08" de "01/08/2025"
+    }
 
     for (const f of invoices) {
       const existe = await prisma.facturaVenta.findFirst({
@@ -141,14 +145,15 @@ app.post("/api/facturas/lote", async (req, res) => {
       }
     }
 
-    if (facturasInsertadas > 0) {
-      await registrarActividad(
-        req,
-        "IMPORTACIÓN",
-        "Lote Ventas",
-        0,
-        `Importación de ${facturasInsertadas} facturas de venta (Cliente: ${cuitActual}) periodo ${periodoMuestra}`,
-      );
+if (facturasInsertadas > 0) {
+      let detallesAuditoria = `Importación de ${facturasInsertadas} facturas de venta (Cliente: ${cuitActual}) periodo ${periodoMuestra}.`;
+      
+      // 🚨 3. AGREGAMOS EL TEXTO SI SE FORZÓ LA IMPORTACIÓN
+      if (ignoreWarning) {
+        detallesAuditoria += ` [ALERTA DE SEGURIDAD IGNORADA: El nombre del archivo CSV subido no contenía el CUIT del cliente].`;
+      }
+
+      await registrarActividad(req, "IMPORTACIÓN", "Lote Ventas", 0, detallesAuditoria);
     }
 
     // --- REVISIÓN DE CORRELATIVIDAD  ---
@@ -405,7 +410,7 @@ app.get("/api/compras", async (req, res) => {
 });
 
 app.post("/api/compras/lote", async (req, res) => {
-  const { invoices, cuitEmpresa, nombreEmpresa } = req.body;
+  const { invoices, cuitEmpresa, nombreEmpresa, ignoreWarning } = req.body; 
 
   if (!invoices || !Array.isArray(invoices))
     return res.status(400).json({ error: "Datos inválidos" });
@@ -413,10 +418,12 @@ app.post("/api/compras/lote", async (req, res) => {
   try {
     const cuitActual = String(cuitEmpresa);
     let comprasInsertadas = 0;
-    const periodoMuestra =
-      invoices.length > 0
-        ? invoices[0].fechaImputacion.substring(3)
-        : "Desconocido";
+    let periodoMuestra = "Desconocido";
+    if (invoices.length > 0 && invoices[0].fechaImputacion) {
+        const f = invoices[0].fechaImputacion;
+        if (f.includes('-')) periodoMuestra = `${f.split('-')[0]}-${f.split('-')[1]}`; 
+        else if (f.includes('/')) periodoMuestra = `${f.split('/')[2]}-${f.split('/')[1]}`; 
+    }
 
     for (const f of invoices) {
       // 🚨 CORRECCIÓN: Cambiamos f.nro por f.numeroFactura en todo el bloque
@@ -468,14 +475,14 @@ app.post("/api/compras/lote", async (req, res) => {
       }
     }
 
-    if (comprasInsertadas > 0) {
-      await registrarActividad(
-        req,
-        "IMPORTACIÓN",
-        "Lote Compras",
-        0,
-        `El usuario importó ${comprasInsertadas} comprobantes del cliente ${nombreEmpresa} (${cuitActual}) periodo ${periodoMuestra}`,
-      );
+if (comprasInsertadas > 0) {
+      let detallesAuditoria = `Importación de ${comprasInsertadas} comprobantes de compra (Cliente: ${cuitActual}) periodo ${periodoMuestra}.`;
+      
+      if (ignoreWarning) {
+        detallesAuditoria += ` [ALERTA DE SEGURIDAD IGNORADA: El nombre del archivo CSV subido no contenía el CUIT del cliente].`;
+      }
+
+      await registrarActividad(req, "IMPORTACIÓN", "Lote Compras", 0, detallesAuditoria);
     }
 
     res.status(201).json({
