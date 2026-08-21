@@ -24,12 +24,14 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
 
             const fieldsToLock: Record<string, boolean> = {
                 denominacionReceptor: true, nroDocReceptor: true, tipoComprobante: true,
-                fecha: true, montoGravadoTotal: true, iva21: true, otrosTributos: true, total: true
+                fecha: true, montoGravadoTotal: true, iva21: true, iva105: true, iva27: true, otrosTributos: true, total: true
             };
 
             if (isIvaError) {
                 fieldsToLock.montoGravadoTotal = false;
                 fieldsToLock.iva21 = false;
+                fieldsToLock.iva105 = false;
+                fieldsToLock.iva27 = false;
                 fieldsToLock.otrosTributos = false;
             }
 
@@ -58,12 +60,27 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
 
         const newForm = { ...formData, [name]: numValue };
 
-        // Autocalcular el total
-        const gravado = parseFloat(String(newForm.montoGravadoTotal)) || 0;
+        // Sumamos dinámicamente todas las alícuotas cargadas
+        const iva25 = parseFloat(String(newForm.iva25)) || 0;
+        const iva5 = parseFloat(String(newForm.iva5)) || 0;
+        const iva105 = parseFloat(String(newForm.iva105)) || 0;
         const iva21 = parseFloat(String(newForm.iva21)) || 0;
+        const iva27 = parseFloat(String(newForm.iva27)) || 0;
+
+        // Recalculamos el Total de IVA consolidado
+        const sumaIvas = iva25 + iva5 + iva105 + iva21 + iva27;
+        newForm.totalIva = parseFloat(sumaIvas.toFixed(2));
+
+        // Obtenemos los demás importes base
+        const gravado = parseFloat(String(newForm.montoGravadoTotal)) || 0;
+        const noGravado = parseFloat(String(newForm.netoNoGravado)) || 0;
+        const exentas = parseFloat(String(newForm.operacionesExentas)) || 0;
         const otros = parseFloat(String(newForm.otrosTributos)) || 0;
 
-        newForm.total = gravado + iva21 + otros;
+        // Calculamos el Gran Total Oficial
+        const granTotal = gravado + noGravado + exentas + newForm.totalIva + otros;
+        newForm.total = parseFloat(granTotal.toFixed(2));
+
         setFormData(newForm);
     };
 
@@ -96,11 +113,14 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
                     <Input label="Comprobante" name="tipoComprobante" value={formData.tipoComprobante || ''} onChange={handleChange} readOnly={readOnlyFields.tipoComprobante} />
                     <Input label="Fecha (DD/MM/YYYY)" name="fecha" value={formData.fecha || ''} onChange={handleChange} readOnly={readOnlyFields.fecha} />
                     <Input label="Número" name="numeroFactura" value={formData.numeroFactura || ''} readOnly />
-
+                   
                     <Input label="Monto Gravado Total" name="montoGravadoTotal" type="number" value={formData.montoGravadoTotal || ''} onChange={handleAmountChange} readOnly={readOnlyFields.montoGravadoTotal} />
                     <Input label="IVA 21%" name="iva21" type="number" value={formData.iva21 || ''} onChange={handleAmountChange} readOnly={readOnlyFields.iva21} />
+                    <Input label="IVA 10.5%" name="iva105" type="number" value={formData.iva105 || ''} onChange={handleAmountChange} readOnly={readOnlyFields.iva105} />
+                    <Input label="IVA 27%" name="iva27" type="number" value={formData.iva27 || ''} onChange={handleAmountChange} readOnly={readOnlyFields.iva27} />
                     <Input label="Otros Tributos" name="otrosTributos" type="number" value={formData.otrosTributos || ''} onChange={handleAmountChange} readOnly={readOnlyFields.otrosTributos} />
-                    <Input label="Total" name="total" type="number" value={formData.total || ''} readOnly style={{ fontWeight: 'bold' }} />                </div>
+                    <Input label="Total" name="total" type="number" value={formData.total || ''} readOnly style={{ fontWeight: 'bold' }} />
+                </div>
             </form>
         </Modal>
     );

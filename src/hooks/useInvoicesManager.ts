@@ -18,20 +18,29 @@ const parseMoney = (val: string | number): number => {
 
 // --- MAPEO DE DB A FRONTEND (CORREGIDO Y SIN DUPLICAR) ---
 const mapDbToFrontend = (dbInvoice: any): Invoice => {
-  // Calculamos si el IVA Total cargado coincide con la sumatoria de las distintas alícuotas
-  const sumaIvas =
-    dbInvoice.iva25 +
-    dbInvoice.iva5 +
-    dbInvoice.iva105 +
-    dbInvoice.iva21 +
-    dbInvoice.iva27;
-  const difference = Math.abs(dbInvoice.totalIva - sumaIvas);
-  const ivaStatus = difference < 0.1 ? "Correcto" : "Error";
+  // 1. Calculamos los valores esperados de IVA según sus bases netas imponibles
+  const expectedIva25  = dbInvoice.netoGravado25  * 0.025;
+  const expectedIva5   = dbInvoice.netoGravado5   * 0.05;
+  const expectedIva105 = dbInvoice.netoGravado105 * 0.105;
+  const expectedIva21  = dbInvoice.netoGravado21  * 0.21;
+  const expectedIva27  = dbInvoice.netoGravado27  * 0.27;
+
+  // Tolerancia de centavos para evitar discrepancias por redondeo
+  const tolerance = 0.10;
+
+  // 2. Comparamos el IVA de cada registro contra el teórico calculado
+  const is25Ok  = Math.abs(dbInvoice.iva25  - expectedIva25)  <= tolerance;
+  const is5Ok   = Math.abs(dbInvoice.iva5   - expectedIva5)   <= tolerance;
+  const is105Ok = Math.abs(dbInvoice.iva105 - expectedIva105) <= tolerance;
+  const is21Ok  = Math.abs(dbInvoice.iva21  - expectedIva21)  <= tolerance;
+  const is27Ok  = Math.abs(dbInvoice.iva27  - expectedIva27)  <= tolerance;
+
+  // 3. El comprobante es correcto solo si todas las alícuotas declaradas son consistentes
+  const ivaStatus = (is25Ok && is5Ok && is105Ok && is21Ok && is27Ok) ? "Correcto" : "Error";
 
   return {
     ...dbInvoice,
     controlIva: ivaStatus,
-    // El backend genera la palabra "--- FACTURA FALTANTE ---" en denominacionReceptor para marcar los huecos
     correlatividad:
       dbInvoice.denominacionReceptor === "--- FACTURA FALTANTE ---"
         ? "Error"

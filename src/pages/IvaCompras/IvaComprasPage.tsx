@@ -147,22 +147,7 @@ export const IvaComprasPage: React.FC = () => {
                 itemsPerPage={ITEMS_PER_PAGE}
                 onPageChange={setCurrentPage}
             />
-            <div className="page-actions">
-                {checkAction(userRol, 'Liquidar') && (
-                    <Button
-                        variant="primary"
-                        disabled={hasErrors || allInvoices.length === 0}
-                        onClick={() => {
-                            const cuit = prompt("Confirmar CUIT a impactar:");
-                            const periodo = prompt("Confirmar Periodo (YYYY-MM):");
-                            if (cuit && periodo) handleImpactData(cuit, periodo);
-                        }}
-                    >
-                        Impactar datos (Liquidar)
-                    </Button>
-                )}
-            </div>
-
+            
             <EditPurchaseModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

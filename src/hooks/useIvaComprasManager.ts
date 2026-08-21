@@ -32,10 +32,18 @@ const mapDbToFrontend = (db: any): PurchaseInvoice => {
   const iva = db.iva || 0;
   const tot = db.total || 0;
 
-  // Control matemático: La suma de partes debe ser igual al Total informado
+  // 1. Control de consistencia horizontal (Sumatoria de conceptos)
   const sumaConceptos = g + ex + noG + otros + iva;
-  const difference = Math.abs(tot - sumaConceptos);
-  const ivaStatus = difference < 0.1 ? "Correcto" : "Error";
+  const isSumaCorrecta = Math.abs(tot - sumaConceptos) <= 0.20;
+
+  // 2. Control de correspondencia con tasas nominales argentinas (21%, 10.5%, 27%, 5%, 2.5%, 0%)
+  const rates = [0.21, 0.105, 0.27, 0.05, 0.025, 0.0];
+  const isRateCoherent = g === 0 ? iva === 0 : rates.some(rate => {
+    const expectedIva = g * rate;
+    return Math.abs(iva - expectedIva) <= 0.20; // Tolerancia por centavos redondeados
+  });
+
+  const ivaStatus = (isSumaCorrecta && isRateCoherent) ? "Correcto" : "Error";
 
   return {
     ...db,
@@ -48,6 +56,7 @@ const mapDbToFrontend = (db: any): PurchaseInvoice => {
     controlIva: ivaStatus,
   };
 };
+
 
 const parseMoney = (val: string): number => {
   if (!val) return 0;

@@ -94,10 +94,20 @@ app.post("/api/facturas/lote", async (req, res) => {
     const cuitActual = String(cuitEmpresa);
     let facturasInsertadas = 0;
     let periodoMuestra = "Desconocido";
+
+    // Identificamos el formato de fecha del lote para construir una fecha del "día 1" válida
+    let fechaPrimerDiaLote = "";
     if (invoices.length > 0 && invoices[0].fecha) {
-        const f = invoices[0].fecha;
-        if (f.includes('-')) periodoMuestra = `${f.split('-')[0]}-${f.split('-')[1]}`; // Extrae "2025-08" de "2025-08-01"
-        else if (f.includes('/')) periodoMuestra = `${f.split('/')[2]}-${f.split('/')[1]}`; // Extrae "2025-08" de "01/08/2025"
+      const f = invoices[0].fecha;
+      if (f.includes("-")) {
+        const partes = f.split("-"); // [YYYY, MM, DD]
+        periodoMuestra = `${partes[0]}-${partes[1]}`;
+        fechaPrimerDiaLote = `${partes[0]}-${partes[1]}-01`;
+      } else if (f.includes("/")) {
+        const partes = f.split("/"); // [DD, MM, YYYY]
+        periodoMuestra = `${partes[2]}-${partes[1]}`;
+        fechaPrimerDiaLote = `01/${partes[1]}/${partes[2]}`;
+      }
     }
 
     for (const f of invoices) {
@@ -145,15 +155,14 @@ app.post("/api/facturas/lote", async (req, res) => {
       }
     }
 
-if (facturasInsertadas > 0) {
+    if (facturasInsertadas > 0) {
       let detallesAuditoria = `Importación de ${facturasInsertadas} facturas de venta (Cliente: ${cuitActual}) periodo ${periodoMuestra}.`;
       
-      // 🚨 3. AGREGAMOS EL TEXTO SI SE FORZÓ LA IMPORTACIÓN
       if (ignoreWarning) {
         detallesAuditoria += ` [ALERTA DE SEGURIDAD IGNORADA: El nombre del archivo CSV subido no contenía el CUIT del cliente].`;
       }
 
-      await registrarActividad(req, "IMPORTACIÓN", "Lote Ventas", 0, detallesAuditoria);
+      await registrarActividad(req, "IMPORTACIÓN", "IVA Ventas", 0, detallesAuditoria);
     }
 
     // --- REVISIÓN DE CORRELATIVIDAD  ---
@@ -229,7 +238,7 @@ if (facturasInsertadas > 0) {
                   codAutorizacion: "",
                   moneda: "PES",
                   tipoCambio: 1,
-                  fecha: "",
+                  fecha: fechaPrimerDiaLote, // Forzamos el día 1 para incluirlo en el filtro del periodo
                 },
               });
               huecosGenerados++;
@@ -269,7 +278,7 @@ if (facturasInsertadas > 0) {
                     codAutorizacion: "",
                     moneda: "PES",
                     tipoCambio: 1,
-                    fecha: "",
+                    fecha: fechaPrimerDiaLote, // Forzamos el día 1 para incluirlo en el filtro del periodo
                   },
                 });
                 huecosGenerados++;
@@ -280,11 +289,11 @@ if (facturasInsertadas > 0) {
       }
     }
 
-    if (huecosGenerados > 0) {
+   if (huecosGenerados > 0) {
       await registrarActividad(
         req,
         "AUTO-CREACIÓN",
-        "Lote Ventas",
+        "IVA Ventas",
         0,
         `Generados ${huecosGenerados} registros faltantes por correlatividad para ${cuitActual}`,
       );
@@ -410,7 +419,7 @@ app.get("/api/compras", async (req, res) => {
 });
 
 app.post("/api/compras/lote", async (req, res) => {
-  const { invoices, cuitEmpresa, nombreEmpresa, ignoreWarning } = req.body; 
+  const { invoices, cuitEmpresa, nombreEmpresa, ignoreWarning } = req.body;
 
   if (!invoices || !Array.isArray(invoices))
     return res.status(400).json({ error: "Datos inválidos" });
@@ -420,9 +429,11 @@ app.post("/api/compras/lote", async (req, res) => {
     let comprasInsertadas = 0;
     let periodoMuestra = "Desconocido";
     if (invoices.length > 0 && invoices[0].fechaImputacion) {
-        const f = invoices[0].fechaImputacion;
-        if (f.includes('-')) periodoMuestra = `${f.split('-')[0]}-${f.split('-')[1]}`; 
-        else if (f.includes('/')) periodoMuestra = `${f.split('/')[2]}-${f.split('/')[1]}`; 
+      const f = invoices[0].fechaImputacion;
+      if (f.includes("-"))
+        periodoMuestra = `${f.split("-")[0]}-${f.split("-")[1]}`;
+      else if (f.includes("/"))
+        periodoMuestra = `${f.split("/")[2]}-${f.split("/")[1]}`;
     }
 
     for (const f of invoices) {
@@ -482,7 +493,7 @@ if (comprasInsertadas > 0) {
         detallesAuditoria += ` [ALERTA DE SEGURIDAD IGNORADA: El nombre del archivo CSV subido no contenía el CUIT del cliente].`;
       }
 
-      await registrarActividad(req, "IMPORTACIÓN", "Lote Compras", 0, detallesAuditoria);
+      await registrarActividad(req, "IMPORTACIÓN", "IVA Compras", 0, detallesAuditoria);
     }
 
     res.status(201).json({
@@ -505,18 +516,30 @@ app.delete("/api/facturas/eliminar-periodo", async (req, res) => {
     let registrosBorrados;
     const esCompra = tipoOperacion === "IVA Compras";
 
+const monthSingle = parseInt(month, 10).toString();
+
     if (esCompra) {
       registrosBorrados = await prisma.facturaCompra.deleteMany({
         where: {
           cuitEmpresa: String(cuitEmpresa),
-          fechaImputacion: { endsWith: searchString },
+          OR: [
+            { fechaImputacion: { contains: `/${month}/${year}` } },
+            { fechaImputacion: { contains: `/${monthSingle}/${year}` } },
+            { fechaImputacion: { contains: `${year}-${month}` } },
+            { fechaImputacion: { contains: `${year}-${monthSingle}` } },
+          ],
         },
       });
     } else {
       registrosBorrados = await prisma.facturaVenta.deleteMany({
         where: {
           cuitEmpresa: String(cuitEmpresa),
-          fecha: { endsWith: searchString },
+          OR: [
+            { fecha: { contains: `/${month}/${year}` } },
+            { fecha: { contains: `/${monthSingle}/${year}` } },
+            { fecha: { contains: `${year}-${month}` } },
+            { fecha: { contains: `${year}-${monthSingle}` } },
+          ],
         },
       });
     }
@@ -530,7 +553,7 @@ app.delete("/api/facturas/eliminar-periodo", async (req, res) => {
     await registrarActividad(
       req,
       "ELIMINACIÓN DE PROCESO",
-      esCompra ? "Lote Compras" : "Lote Ventas",
+      esCompra ? "IVA Compras" : "IVA Ventas",
       0,
       `El Gerente autorizó la eliminación completa de ${registrosBorrados.count} registros del periodo ${periodo} para el CUIT ${cuitEmpresa}.`,
     );
@@ -679,7 +702,7 @@ app.post("/api/facturas/impactar", async (req, res) => {
     await registrarActividad(
       req,
       "IMPACTO (CIERRE)",
-      esCompra ? "Lote Compras" : "Lote Ventas",
+      esCompra ? "IVA Compras" : "IVA Ventas",
       0,
       `Se cerró e impactó el periodo ${periodo} para el CUIT ${cuitEmpresa}. Total registros congelados: ${facturasAImpactar.length}`,
     );

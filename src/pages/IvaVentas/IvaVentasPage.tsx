@@ -96,23 +96,6 @@ export const IvaVentasPage: React.FC = () => {
                         <FontAwesomeIcon icon={faTrashArrowUp} /> Deshacer Liquidación
                     </Button>
                 )}
-
-                {/* BOTÓN CU-020: SOLO SUPERVISOR (O ADMIN GRAL) */}
-                {checkAction(userRol, 'Liquidar') && (
-                    <Button
-                        variant="primary"
-                        disabled={hasErrors || allInvoices.length === 0} 
-                        onClick={() => {
-                            // 👇 LECTURA AUTOMÁTICA DE FILTROS 👇
-                            const cuit = (document.getElementsByName('entidad')[0] as HTMLSelectElement)?.value;
-                            const periodo = (document.getElementsByName('periodo')[0] as HTMLSelectElement)?.value;
-                            if (cuit && periodo) handleImpactData(cuit, periodo);
-                            else toast.warning("Por favor, seleccione una Empresa y un Periodo para esta acción.");
-                        }}
-                    >
-                        Impactar datos (Liquidar)
-                    </Button>
-                )}
             </div>
 
 
