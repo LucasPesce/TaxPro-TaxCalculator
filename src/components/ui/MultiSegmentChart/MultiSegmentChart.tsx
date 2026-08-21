@@ -27,7 +27,7 @@ export const MultiSegmentChart: React.FC<MultiSegmentChartProps> = ({ data, colo
     //--- FUNCIÓN PARA FORMATEAR LA LEYENDA ---
     const renderLegendText = (value: string, entry: any) => {
         const { payload } = entry;
-        const percentage = ((payload.value / totalValue) * 100).toFixed(1);
+        const percentage = ((payload.value / totalValue) * 100).toFixed(2);
 
         return (
             <span className={styles.legendText}>
@@ -35,7 +35,6 @@ export const MultiSegmentChart: React.FC<MultiSegmentChartProps> = ({ data, colo
             </span>
         );
     };
-
     //================= RENDERIZADO DEL COMPONENTE ==================
     return (
         <div className={styles.chartContainer}>
