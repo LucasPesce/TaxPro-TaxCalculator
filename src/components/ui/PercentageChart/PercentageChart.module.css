@@ -9,7 +9,7 @@
   top: 35%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 3.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: var(--text-color);
   pointer-events: none; /* Evita que el texto interfiera con el tooltip del gráfico */

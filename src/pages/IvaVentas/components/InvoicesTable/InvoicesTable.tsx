@@ -107,8 +107,8 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices, onEdit, 
                                         <Button 
                                             variant="icon" 
                                             onClick={() => onEdit(invoice)} 
-                                            title={invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto' ? "Sin errores para editar" : `Editar factura`}
-                                            disabled={invoice.controlIva === 'Correcto' && invoice.correlatividad === 'Correcto'}
+                                            title={invoice.controlIva === 'Validado' && invoice.correlatividad === 'Validado' ? "Sin errores para editar" : `Editar factura`}
+                                            disabled={invoice.controlIva === 'Validado' && invoice.correlatividad === 'Validado'}
                                         >
                                             <FontAwesomeIcon icon={faPencil} />
                                         </Button>

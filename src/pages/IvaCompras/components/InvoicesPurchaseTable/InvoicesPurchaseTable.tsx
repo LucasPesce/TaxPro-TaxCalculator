@@ -92,8 +92,8 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
                                         <Button
                                             variant="icon"
                                             onClick={() => onEdit(inv)}
-                                            title={inv.controlIva === 'Correcto' ? "Sin errores para editar" : "Editar comprobante completo"}
-                                            disabled={inv.controlIva === 'Correcto'}
+                                            title={inv.controlIva === 'Validado' ? "Sin errores para editar" : "Editar comprobante completo"}
+                                            disabled={inv.controlIva === 'Validado'}
                                         >
                                             <FontAwesomeIcon icon={faPencil} />
                                         </Button>

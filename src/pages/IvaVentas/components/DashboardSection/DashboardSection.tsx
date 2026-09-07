@@ -33,15 +33,15 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ invoices }) 
 
     //================= CÁLCULO DE DATOS PARA GRÁFICOS ==================
     const ivaChartData = useMemo(() => {
-        const correct = invoices.filter(inv => inv.controlIva === 'Correcto').length;
-        const error = invoices.filter(inv => inv.controlIva === 'Error').length;
-        return [{ name: 'Correcto', value: correct }, { name: 'Error', value: error }];
+        const correct = invoices.filter(inv => inv.controlIva === 'Validado').length;
+        const error = invoices.filter(inv => inv.controlIva === 'Observado').length;
+        return [{ name: 'Validado', value: correct }, { name: 'Observado', value: error }];
     }, [invoices]);
 
     const correlatividadChartData = useMemo(() => {
-        const correct = invoices.filter(inv => inv.correlatividad === 'Correcto').length;
-        const error = invoices.filter(inv => inv.correlatividad === 'Error').length;
-        return [{ name: 'Correcto', value: correct }, { name: 'Error', value: error }];
+        const correct = invoices.filter(inv => inv.correlatividad === 'Validado').length;
+        const error = invoices.filter(inv => inv.correlatividad === 'Observado').length;
+        return [{ name: 'Validado', value: correct }, { name: 'Observado', value: error }];
     }, [invoices]);
 
     console.log('Datos para los gráficos:', invoices);

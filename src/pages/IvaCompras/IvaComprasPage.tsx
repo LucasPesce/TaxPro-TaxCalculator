@@ -54,11 +54,11 @@ export const IvaComprasPage: React.FC = () => {
 
     // 2. Cálculos para el Dashboard (Memoizados)
     const ivaChartData = useMemo(() => {
-        const correct = allInvoices.filter(inv => inv.controlIva === 'Correcto').length;
-        const error = allInvoices.filter(inv => inv.controlIva === 'Error').length;
+        const correct = allInvoices.filter(inv => inv.controlIva === 'Validado').length;
+        const error = allInvoices.filter(inv => inv.controlIva === 'Observado').length;
         // Evitar gráfico vacío
         if (correct === 0 && error === 0) return [];
-        return [{ name: 'Correcto', value: correct }, { name: 'Error', value: error }];
+        return [{ name: 'Validado', value: correct }, { name: 'Observado', value: error }];
     }, [allInvoices]);
 
     // Índice RECO (Ejemplo: % de facturas que son "Bienes de Uso" vs Total)
