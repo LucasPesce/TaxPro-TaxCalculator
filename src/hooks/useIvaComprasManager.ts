@@ -43,7 +43,7 @@ const mapDbToFrontend = (db: any): PurchaseInvoice => {
     return Math.abs(iva - expectedIva) <= 0.20; // Tolerancia por centavos redondeados
   });
 
-  const ivaStatus = (isSumaCorrecta && isRateCoherent) ? "Correcto" : "Error";
+  const ivaStatus = (isSumaCorrecta && isRateCoherent) ? "Validado" : "Observado";
 
   return {
     ...db,
@@ -326,9 +326,9 @@ const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: 
   // Propiedad computada: ¿Hay errores en la lista actual?
   const hasErrors = useMemo(() => {
     // En compras solo validamos controlIva (no hay correlatividad)
-    return invoices.some((inv) => inv.controlIva === "Error");
+    return invoices.some((inv) => inv.controlIva === "Observado");
   }, [invoices]);
-
+  
   // Función para Impactar
   const handleImpactData = async (cuitEmpresa: string, periodo: string) => {
     if (hasErrors) {

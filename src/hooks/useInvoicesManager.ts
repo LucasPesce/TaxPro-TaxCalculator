@@ -36,15 +36,15 @@ const mapDbToFrontend = (dbInvoice: any): Invoice => {
   const is27Ok  = Math.abs(dbInvoice.iva27  - expectedIva27)  <= tolerance;
 
   // 3. El comprobante es correcto solo si todas las alícuotas declaradas son consistentes
-  const ivaStatus = (is25Ok && is5Ok && is105Ok && is21Ok && is27Ok) ? "Correcto" : "Error";
+  const ivaStatus = (is25Ok && is5Ok && is105Ok && is21Ok && is27Ok) ? "Validado" : "Observado";
 
   return {
     ...dbInvoice,
     controlIva: ivaStatus,
     correlatividad:
       dbInvoice.denominacionReceptor === "--- FACTURA FALTANTE ---"
-        ? "Error"
-        : "Correcto",
+        ? "Observado"
+        : "Validado",
   };
 };
 
@@ -343,7 +343,7 @@ const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: 
   //--- CALCULO: VERIFICAR SI HAY ERRORES (Para botón Impactar) ---
   const hasErrors = useMemo(() => {
     return invoices.some(
-      (inv) => inv.controlIva === "Error" || inv.correlatividad === "Error",
+      (inv) => inv.controlIva === "Observado" || inv.correlatividad === "Observado",
     );
   }, [invoices]);
 

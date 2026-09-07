@@ -19,9 +19,9 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
     useEffect(() => {
         if (invoice) {
             setFormData({ ...invoice });
-            const isIvaError = invoice.controlIva === 'Error';
-            const isCompletenessError = invoice.correlatividad === 'Error';
-
+             const isIvaError = invoice.controlIva === 'Observado';
+            const isCompletenessError = invoice.correlatividad === 'Observado';
+            
             const fieldsToLock: Record<string, boolean> = {
                 denominacionReceptor: true, nroDocReceptor: true, tipoComprobante: true,
                 fecha: true, montoGravadoTotal: true, iva21: true, iva105: true, iva27: true, otrosTributos: true, total: true

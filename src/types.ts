@@ -37,8 +37,8 @@ export interface Invoice {
   total: number;
 
   // Estados locales del Frontend (no van a la BD)
-  controlIva: 'Correcto' | 'Error';
-  correlatividad: 'Correcto' | 'Error';
+  controlIva: 'Validado' | 'Observado' | 'Editado';
+  correlatividad: 'Validado' | 'Observado' | 'Editado';
 }
 
 
@@ -72,7 +72,7 @@ export interface PurchaseInvoice {
   iva: number;
   total: number;
 
-  controlIva: 'Correcto' | 'Error';
+  controlIva: 'Validado' | 'Observado' | 'Editado';
 }
 
 export interface Usuario {
