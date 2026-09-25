@@ -30,17 +30,17 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
     return (
         <Card title="Registro de Compras">
             <div className={styles.tableWrapper}>
-<table className={styles.table} style={{ textAlign: 'center', minWidth: '1800px' }}>
+                <table className={styles.table} style={{ textAlign: 'center', minWidth: '1800px' }}>
                     <thead>
                         <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted-color)' }}>
                             <th style={{ padding: '10px 12px', textAlign: 'left' }}>Proveedor</th>
+                            <th>Clasificación</th>
                             <th>Tipo Doc.</th>
                             <th>CUIT Emisor</th>
                             <th onClick={() => onSort('fechaImputacion')} style={{ padding: '10px 12px', cursor: 'pointer', userSelect: 'none' }}>
                                 F. Imputación <FontAwesomeIcon icon={getSortIcon('fechaImputacion')} />
-                            </th>                            
-                            <th>F. Emisión</th>
-                            <th>Tipo Comp.</th>
+                            </th>
+                            <th>F. Emisión</th>                            <th>Tipo Comp.</th>
                             <th>Pto Venta</th>
                             <th>Nro Desde</th>
                             <th>Nro Hasta</th>
@@ -66,10 +66,17 @@ export const InvoicesPurchaseTable: React.FC<InvoicesPurchaseTableProps> = ({ in
                             invoices.map((inv) => (
                                 <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                     <td style={{ padding: '10px 12px', textAlign: 'left' }}><strong>{inv.proveedor}</strong></td>
+                                    <td style={{
+                                        color: inv.clasificacion?.includes('Sugerido') ? 'var(--accent-color)' : 'var(--primary-color)',
+                                        fontWeight: inv.clasificacion?.includes('Confirmado') ? 'bold' : 'normal'
+                                    }}>
+                                        {inv.clasificacion || '-'}
+                                    </td>
                                     <td>{inv.tipoDocEmisor}</td>
                                     <td>{inv.cuitProveedor}</td>
                                     <td>{inv.fechaImputacion}</td>
                                     <td>{inv.fechaEmision}</td>
+
                                     <td>{inv.tipoComprobante}</td>
                                     <td>{inv.puntoVenta}</td>
                                     <td>{inv.numeroDesde}</td>

@@ -34,16 +34,19 @@ const mapDbToFrontend = (db: any): PurchaseInvoice => {
 
   // 1. Control de consistencia horizontal (Sumatoria de conceptos)
   const sumaConceptos = g + ex + noG + otros + iva;
-  const isSumaCorrecta = Math.abs(tot - sumaConceptos) <= 0.20;
+  const isSumaCorrecta = Math.abs(tot - sumaConceptos) <= 0.2;
 
   // 2. Control de correspondencia con tasas nominales argentinas (21%, 10.5%, 27%, 5%, 2.5%, 0%)
   const rates = [0.21, 0.105, 0.27, 0.05, 0.025, 0.0];
-  const isRateCoherent = g === 0 ? iva === 0 : rates.some(rate => {
-    const expectedIva = g * rate;
-    return Math.abs(iva - expectedIva) <= 0.20; // Tolerancia por centavos redondeados
-  });
+  const isRateCoherent =
+    g === 0
+      ? iva === 0
+      : rates.some((rate) => {
+          const expectedIva = g * rate;
+          return Math.abs(iva - expectedIva) <= 0.2; // Tolerancia por centavos redondeados
+        });
 
-  const ivaStatus = (isSumaCorrecta && isRateCoherent) ? "Validado" : "Observado";
+  const ivaStatus = isSumaCorrecta && isRateCoherent ? "Validado" : "Observado";
 
   return {
     ...db,
@@ -56,7 +59,6 @@ const mapDbToFrontend = (db: any): PurchaseInvoice => {
     controlIva: ivaStatus,
   };
 };
-
 
 const parseMoney = (val: string): number => {
   if (!val) return 0;
@@ -108,7 +110,12 @@ export const useIvaComprasManager = () => {
   }, []);
 
   // --- IMPORTACIÓN ADAPTADA AL CSV DE AFIP ---
-const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: string, ignoreWarning: boolean = false): Promise<string | null> => {
+  const handleFileImport = async (
+    file: File,
+    cuitEmpresa: string,
+    nombreEmpresa: string,
+    ignoreWarning: boolean = false,
+  ): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
@@ -123,38 +130,78 @@ const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: 
           }
 
           const parsedInvoices = results.data.map((row: any) => {
-            const ptoVenta = (row["Punto de Venta"] || "0")
+            // AFIP a veces llama a la columna "Fecha", "Fecha de Emisión" o "Fecha Emision"
+            const fechaCruda =
+              row["Fecha"] ||
+              row["Fecha de Emisión"] ||
+              row["Fecha Emision"] ||
+              row["Fecha Comprobante"] ||
+              "";
+
+            // Punto de Venta y Nro Desde (AFIP suele variar los nombres)
+            const ptoVenta = (
+              row["Punto de Venta"] ||
+              row["Punto Venta"] ||
+              "0"
+            )
               .toString()
               .padStart(4, "0");
-            const nroDesde = (row["Número Desde"] || "0")
+            const nroDesde = (
+              row["Número Desde"] ||
+              row["Nro. Desde"] ||
+              row["Numero Desde"] ||
+              "0"
+            )
               .toString()
               .padStart(8, "0");
             const numeroCompleto = `${ptoVenta}-${nroDesde}`;
 
+            // Diccionario de Comprobantes
+            const tipoCrudo =
+              row["Tipo"] ||
+              row["Tipo de Comprobante"] ||
+              row["Tipo CBTE"] ||
+              "";
+            const tipoKey = String(tipoCrudo).padStart(3, "0");
+            const tipoComprobante = TIPO_CBTE[tipoKey] || tipoCrudo;
+
             return {
               cuitEmpresa,
               nombreEmpresa,
-              fechaEmision: row["Fecha de Emisión"] || "",
-              fechaImputacion: row["Fecha de Emisión"] || "",
-              tipoComprobante: row["Tipo de Comprobante"] || "",
+              fechaEmision: fechaCruda,
+              fechaImputacion: fechaCruda,
+              tipoComprobante: tipoComprobante,
               puntoVenta: ptoVenta,
               numeroDesde: nroDesde,
-              numeroHasta: (row["Número Hasta"] || "0")
+              numeroHasta: (row["Número Hasta"] || row["Nro. Hasta"] || "0")
                 .toString()
                 .padStart(8, "0"),
               numeroFactura: numeroCompleto,
               codAutorizacion: row["Cód. Autorización"] || "",
               tipoDocEmisor: row["Tipo Doc. Emisor"] || "",
-              cuitProveedor: row["Nro. Doc. Emisor"] || "",
-              proveedor: row["Denominación Emisor"] || "",
+              cuitProveedor:
+                row["Nro. Doc. Emisor"] || row["Nro Doc Emisor"] || "",
+              proveedor:
+                row["Denominación Emisor"] || row["Denominacion Emisor"] || "",
               tipoCambio: parseMoney(row["Tipo Cambio"]) || 1,
               moneda: row["Moneda"] || "PES",
-              montoGravado: parseMoney(row["Imp. Neto Gravado"]),
-              netoNoGravado: parseMoney(row["Imp. Neto No Gravado"]),
-              exento: parseMoney(row["Imp. Op. Exentas"]),
+
+              // Importes Totales y desglosados (Si el CSV lo trae, lo tomamos. Si no, 0)
+              montoGravado: parseMoney(
+                row["Imp. Neto Gravado"] || row["Neto Gravado"],
+              ),
+              netoNoGravado: parseMoney(
+                row["Imp. Neto No Gravado"] || row["Neto No Gravado"],
+              ),
+              exento: parseMoney(
+                row["Imp. Op. Exentas"] || row["Operaciones Exentas"],
+              ),
               otrosTributos: parseMoney(row["Otros Tributos"]),
-              iva: parseMoney(row["IVA"]),
-              total: parseMoney(row["Imp. Total"]),
+              iva: parseMoney(row["IVA"] || row["Total IVA"]),
+              iva105: parseMoney(row["IVA 10,5%"] || row["IVA 10.5%"]),
+              iva21: parseMoney(row["IVA 21%"]),
+              iva27: parseMoney(row["IVA 27%"]),
+              total: parseMoney(row["Imp. Total"] || row["Total"]),
             };
           });
 
@@ -309,9 +356,13 @@ const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: 
   const sortedInvoices = useMemo(() => {
     const items = [...invoices];
     items.sort((a, b) => {
-      if (a[sortConfig.key] < b[sortConfig.key])
+      // Usamos (as any) solo para la lectura dinámica de la propiedad, evitando el error de TS
+      const valA = (a as any)[sortConfig.key];
+      const valB = (b as any)[sortConfig.key];
+      
+      if (valA < valB)
         return sortConfig.direction === "ascending" ? -1 : 1;
-      if (a[sortConfig.key] > b[sortConfig.key])
+      if (valA > valB)
         return sortConfig.direction === "ascending" ? 1 : -1;
       return 0;
     });
@@ -328,7 +379,7 @@ const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: 
     // En compras solo validamos controlIva (no hay correlatividad)
     return invoices.some((inv) => inv.controlIva === "Observado");
   }, [invoices]);
-  
+
   // Función para Impactar
   const handleImpactData = async (cuitEmpresa: string, periodo: string) => {
     if (hasErrors) {
