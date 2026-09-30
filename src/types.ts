@@ -68,9 +68,13 @@ export interface PurchaseInvoice {
   montoGravado: number;
   netoNoGravado: number;
   exento: number;
+  iva105: number;
+  iva21: number;
+  iva27: number;
   otrosTributos: number;
   iva: number;
   total: number;
+  clasificacion?: string; // Clasificación del gasto
 
   controlIva: 'Validado' | 'Observado' | 'Editado';
 }
