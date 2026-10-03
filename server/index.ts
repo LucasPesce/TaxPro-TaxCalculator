@@ -436,50 +436,44 @@ app.post("/api/compras/lote", async (req, res) => {
         periodoMuestra = `${f.split("/")[2]}-${f.split("/")[1]}`;
     }
 
+    // Obtenemos los proveedores registrados para clasificar gastos
+    const proveedoresBD = await prisma.proveedor.findMany();
+
     for (const f of invoices) {
-      // 🚨 CORRECCIÓN: Cambiamos f.nro por f.numeroFactura en todo el bloque
       const existe = await prisma.facturaCompra.findFirst({
-        where: {
-          cuitEmpresa: cuitActual,
-          cuitProveedor: f.cuitProveedor,
-          numeroFactura: f.numeroFactura,
-        },
+        where: { cuitEmpresa: cuitActual, cuitProveedor: f.cuitProveedor, numeroFactura: f.numeroFactura },
       });
 
-      if (existe) {
-        console.log(
-          `⚠️ Ignorada por duplicada (Ya existe en BD): Nro: "${f.numeroFactura}"`,
-        );
-      }
-
       if (!existe) {
-        console.log(`💾 Guardando en BD: Nro: "${f.numeroFactura}"`);
+        // --- CÁLCULO DE CLASIFICACIÓN DE GASTO ---
+        let clasificacionStr = "Mercadería";
+        const provEncontrado = proveedoresBD.find(p => p.cuitProveedor === f.cuitProveedor);
+        
+        if (provEncontrado && provEncontrado.idTipoCompra) {
+            clasificacionStr = `${provEncontrado.idTipoCompra} (Confirmado)`;
+        } else {
+            // Sugerencia por defecto estricta según IVA
+            const tasa = f.montoGravado > 0 ? (f.iva / f.montoGravado) : 0;
+            if (Math.abs(tasa - 0.27) < 0.02) clasificacionStr = "Servicios (Sugerido)";
+            else if (Math.abs(tasa - 0.105) < 0.02) clasificacionStr = "Bienes de Uso (Sugerido)";
+            else if (Math.abs(tasa - 0.21) < 0.02) clasificacionStr = "Mercadería (Sugerido)";
+            else clasificacionStr = "Otros (Sugerido)";
+        }
+
         await prisma.facturaCompra.create({
           data: {
-            cuitEmpresa: cuitActual,
-            nombreEmpresa: String(nombreEmpresa),
-            fechaEmision: f.fechaEmision,
-            fechaImputacion: f.fechaImputacion,
-            tipoComprobante: f.tipoComprobante,
-            puntoVenta: f.puntoVenta,
-            numeroDesde: f.numeroDesde,
-            numeroHasta: f.numeroHasta,
-            numeroFactura: f.numeroFactura,
-            codAutorizacion: f.codAutorizacion,
-            tipoDocEmisor: f.tipoDocEmisor,
-            cuitProveedor: f.cuitProveedor,
-            proveedor: f.proveedor,
-            tipoCambio: f.tipoCambio,
-            moneda: f.moneda,
-            montoGravado: f.montoGravado,
-            netoNoGravado: f.netoNoGravado,
-            exento: f.exento,
-            otrosTributos: f.otrosTributos,
-            iva: f.iva,
-            total: f.total,
-            provincia: f.provincia || "Córdoba",
-            jurisdiccion: f.jurisdiccion || "Córdoba",
-            activo: true,
+            cuitEmpresa: cuitActual, nombreEmpresa: String(nombreEmpresa),
+            fechaEmision: f.fechaEmision, fechaImputacion: f.fechaImputacion,
+            tipoComprobante: f.tipoComprobante, puntoVenta: f.puntoVenta,
+            numeroDesde: f.numeroDesde, numeroHasta: f.numeroHasta, numeroFactura: f.numeroFactura,
+            codAutorizacion: f.codAutorizacion, tipoDocEmisor: f.tipoDocEmisor,
+            cuitProveedor: f.cuitProveedor, proveedor: f.proveedor,
+            tipoCambio: f.tipoCambio, moneda: f.moneda,
+            montoGravado: f.montoGravado, netoNoGravado: f.netoNoGravado, exento: f.exento,
+            iva105: f.iva105 || 0, iva21: f.iva21 || 0, iva27: f.iva27 || 0,
+            otrosTributos: f.otrosTributos, iva: f.iva, total: f.total,
+            clasificacion: clasificacionStr, // Guardamos la clasificación
+            provincia: f.provincia || "Córdoba", jurisdiccion: f.jurisdiccion || "Córdoba",
           },
         });
         comprasInsertadas++;
