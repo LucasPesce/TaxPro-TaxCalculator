@@ -84,7 +84,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
         if (!selectedFile) return alert('Por favor, selecciona un archivo CSV primero.');
         if (!selectedCuit) return alert('Para importar, primero debes seleccionar una Empresa a liquidar.');
 
-const cleanCuit = selectedCuit.replace(/\D/g, ""); 
+        const cleanCuit = selectedCuit.replace(/\D/g, "");
         let ignoreWarning = false;
 
         // Función interna para proceder con la carga real
@@ -114,49 +114,20 @@ const cleanCuit = selectedCuit.replace(/\D/g, "");
             }
         };
 
-        // 🚨 CONTROL DE CUIT EN NOMBRE DE ARCHIVO
+        // 🚨 CONTROL DE CUIT EN NOMBRE DE ARCHIVO (BLOQUEO ESTRICTO Y LIMPIEZA VISUAL)
         if (!selectedFile.name.includes(cleanCuit)) {
-            // Desplegamos un Toast interactivo que se queda fijo hasta que el usuario responda
-            toast.warning(
-                <div>
-                    <p style={{ fontWeight: 'bold', margin: '0 0 8px 0' }}>⚠️ ALERTA DE COINCIDENCIA DE CUIT</p>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>
-                        El archivo <strong>{selectedFile.name}</strong> NO contiene el CUIT de la empresa seleccionada ({cleanCuit}).
-                    </p>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                        (Ignorar esta alerta quedará registrado en auditoría).
-                    </p>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <Button 
-                            variant="secondary" 
-                            style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                            onClick={() => {
-                                toast.dismiss(); // Cierra el toast
-                                setSelectedFile(null);
-                                setFileName('Ningún archivo seleccionado');
-                                const fileInput = document.getElementById('csv-importer') as HTMLInputElement;
-                                if (fileInput) fileInput.value = '';
-                            }}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button 
-                            variant="primary" 
-                            style={{ padding: '4px 8px', fontSize: '0.8rem', backgroundColor: '#d32f2f', borderColor: '#d32f2f' }}
-                            onClick={() => {
-                                toast.dismiss(); // Cierra el toast
-                                proceedWithImport(true); // Procede enviando ignoreWarning = true
-                            }}
-                        >
-                            Importar Igualmente
-                        </Button>
-                    </div>
-                </div>, 
-                { duration: Infinity, style: { width: '400px' } } // Infinity = no se cierra solo, style = lo hace un poco más ancho
+            toast.error(
+                `Error: El archivo "${selectedFile.name}" no corresponde al CUIT ${cleanCuit} seleccionado.`,
+                { duration: 6000 }
             );
-            return; // Cortamos la ejecución aquí, la respuesta del usuario lanzará el proceedWithImport
-        }
 
+            // Limpiamos la UI y el input file oculto para obligar a seleccionar de nuevo
+            setSelectedFile(null);
+            setFileName('Ningún archivo seleccionado');
+            const fileInput = document.getElementById('csv-importer') as HTMLInputElement;
+            if (fileInput) fileInput.value = '';
+            return;
+        }
         // Si el archivo SÍ tiene el CUIT en el nombre, procedemos normal y directo
         proceedWithImport(false);
     };

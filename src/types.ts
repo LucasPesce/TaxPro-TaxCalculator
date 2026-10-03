@@ -18,17 +18,18 @@ export interface Invoice {
   moneda: string;
   
   // Importes
-  netoGravado0: number;
-  iva25: number;
-  netoGravado25: number;
-  iva5: number;
-  netoGravado5: number;
-  iva105: number;
-  netoGravado105: number;
-  iva21: number;
-  netoGravado21: number;
-  iva27: number;
-  netoGravado27: number;
+  netoGravado0?: number;
+  iva25?: number;
+  netoGravado25?: number;
+  iva5?: number;
+  netoGravado5?: number;
+  iva105?: number;
+  netoGravado105?: number;
+  iva21?: number;
+  netoGravado21?: number;
+  iva27?: number;
+  netoGravado27?: number;
+  
   montoGravadoTotal: number;
   netoNoGravado: number;
   operacionesExentas: number;
@@ -40,7 +41,6 @@ export interface Invoice {
   controlIva: 'Validado' | 'Observado' | 'Editado';
   correlatividad: 'Validado' | 'Observado' | 'Editado';
 }
-
 
 export interface PurchaseInvoice {
   id: number;
@@ -64,14 +64,30 @@ export interface PurchaseInvoice {
   tipoCambio: number;
   moneda: string;
 
-  // Importes
+  // Importes desglosados (Para igualar estructura del modal con Ventas)
+  netoGravado0?: number;
+  iva25?: number;
+  netoGravado25?: number;
+  iva5?: number;
+  netoGravado5?: number;
+  iva105?: number;
+  netoGravado105?: number;
+  iva21?: number;
+  netoGravado21?: number;
+  iva27?: number;
+  netoGravado27?: number;
+
+  // Importes consolidados
   montoGravado: number;
   netoNoGravado: number;
   exento: number;
   otrosTributos: number;
   iva: number;
   total: number;
+  
+  clasificacion?: string;
 
+  // Estados locales del Frontend
   controlIva: 'Validado' | 'Observado' | 'Editado';
 }
 
@@ -81,7 +97,13 @@ export interface Usuario {
   nombre: string;
   apellido: string;
   username: string;
-  rol: 'Asistente Contable' | 'Supervisor' | 'Gerente' | 'Administrador' | 'Sin Permisos' | string;
+  rol:
+    | "Asistente Contable"
+    | "Supervisor"
+    | "Gerente"
+    | "Administrador"
+    | "Sin Permisos"
+    | string;
   password?: string; // Opcional porque el backend la enmascara
   activo: boolean;
   fechaEliminacion?: string | null;
