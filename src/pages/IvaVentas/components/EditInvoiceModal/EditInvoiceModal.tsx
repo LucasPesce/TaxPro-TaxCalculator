@@ -114,9 +114,6 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
         <Modal isOpen={isOpen} onClose={onClose} title={`Editar Factura: ${invoice.numeroFactura}`}
             footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button variant="primary" onClick={handleSubmit}>Guardar Cambios</Button></>}
         >
-            <div style={{ marginBottom: '24px', color: '#db0012', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'center', backgroundColor: '#ffe5e5', padding: '12px', border: '1px solid #db0012', borderRadius: '4px' }}>
-                ATENCIÓN: LO QUE ESTÁ CON LETRAS ROJAS (FONDO GRIS) SIGNIFICA QUE EL CAMPO NO ES EDITABLE
-            </div>
             
             <form onSubmit={handleSubmit} className={styles.editForm}>
                 <div className={styles.formGrid}>
