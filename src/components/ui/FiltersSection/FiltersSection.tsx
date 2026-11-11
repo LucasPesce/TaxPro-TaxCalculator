@@ -101,20 +101,20 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({ modulo, onFileIm
                     setHasSearched(true);
                     onSearch(selectedCuit, detectedPeriod);
                 }
-
+            } catch (error) {
+                console.error("Error durante la importación:", error);
+            } finally {
+                // Siempre limpiamos el archivo al finalizar (éxito o error estructural)
+                setIsImporting(false);
                 setSelectedFile(null);
                 setFileName('Ningún archivo seleccionado');
                 const fileInput = document.getElementById('csv-importer') as HTMLInputElement;
                 if (fileInput) fileInput.value = '';
-
-            } catch (error) {
-                console.error("Error durante la importación:", error);
-            } finally {
-                setIsImporting(false);
             }
         };
 
-        // 🚨 CONTROL DE CUIT EN NOMBRE DE ARCHIVO (BLOQUEO ESTRICTO Y LIMPIEZA VISUAL)
+
+        // CONTROL DE CUIT EN NOMBRE DE ARCHIVO (BLOQUEO ESTRICTO Y LIMPIEZA VISUAL)
         if (!selectedFile.name.includes(cleanCuit)) {
             toast.error(
                 `Error: El archivo "${selectedFile.name}" no corresponde al CUIT ${cleanCuit} seleccionado.`,

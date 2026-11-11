@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useState } from 'react';
 import { EditPurchaseModal } from './components/EditPurchaseModal/EditPurchaseModal';
-import { checkAction, getCurrentUser } from '../../utils/auth';
+import { getCurrentUser } from '../../utils/auth';
 
 import './IvaComprasPage.css';
 
@@ -41,6 +41,7 @@ export const IvaComprasPage: React.FC = () => {
         handleUpdateInvoice,
         hasErrors,
         handleImpactData,
+        handleQuickEditClasificacion,
         handleCreateInvoice
 
     } = useIvaComprasManager();
@@ -61,12 +62,19 @@ export const IvaComprasPage: React.FC = () => {
         return [{ name: 'Validado', value: correct }, { name: 'Observado', value: error }];
     }, [allInvoices]);
 
-    // Índice RECO (Ejemplo: % de facturas que son "Bienes de Uso" vs Total)
-    // O podrías calcularlo según lógica fiscal real. Aquí simulo un porcentaje simple.
-    const recoIndexData = useMemo(() => {
-        if (allInvoices.length === 0) return [];
-        // Ejemplo: Supongamos que RECO es un índice de eficiencia, por ahora fijo o calculado
-        return [{ name: 'Índice', value: 62 }, { name: 'Resto', value: 38 }];
+    // Clasificación de Gastos (Reemplazo del Índice RECO)
+    const classificationData = useMemo(() => {
+        const grouped: Record<string, number> = {};
+        allInvoices.forEach(inv => {
+            // Limpiamos etiquetas como "(Sugerido)" para unificar rubros
+            const clase = inv.clasificacion ? inv.clasificacion.replace(/\s*\(.*?\)\s*/g, '') : "Otros";
+            grouped[clase] = (grouped[clase] || 0) + (inv.montoGravado || 0);
+        });
+
+        return Object.entries(grouped)
+            .map(([name, value]) => ({ name, value }))
+            .filter(item => item.value > 0)
+            .sort((a, b) => b.value - a.value);
     }, [allInvoices]);
 
     const openEditModal = (invoice: any) => {
@@ -117,12 +125,38 @@ export const IvaComprasPage: React.FC = () => {
                     }
                 </ChartCard>
 
-                {/* 2. Índice RECO */}
-                <ChartCard title="Índice RECO">
-                    {recoIndexData.length > 0 ?
-                        <PercentageChart data={recoIndexData} colors={COLORS_RECO} /> :
+ {/* 2. Resumen por Clasificación */}
+                <ChartCard title="Monto Neto por Clasificación">
+                    {classificationData.length > 0 ? (
+                        <div style={{ width: '100%', padding: '0 16px', boxSizing: 'border-box' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
+                                        <th style={{ padding: '8px', color: 'var(--text-muted-color)' }}>Rubro</th>
+                                        <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-muted-color)' }}>Monto Neto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {classificationData.map((item, i) => (
+                                        <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                            <td style={{ padding: '8px', fontWeight: '600' }}>{item.name}</td>
+                                            <td style={{ padding: '8px', textAlign: 'right' }}>
+                                                ${item.value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    <tr style={{ backgroundColor: 'var(--background-color)', fontWeight: 'bold' }}>
+                                        <td style={{ padding: '8px' }}>TOTAL</td>
+                                        <td style={{ padding: '8px', textAlign: 'right', color: 'var(--primary-color)' }}>
+                                            ${classificationData.reduce((acc, curr) => acc + curr.value, 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
                         <span>Sin datos</span>
-                    }
+                    )}
                 </ChartCard>
 
                 {/* 3. Total por Tipo de Comprobante) */}
@@ -138,6 +172,7 @@ export const IvaComprasPage: React.FC = () => {
                 onUpdate={handleUpdateInvoice}
                 sortConfig={sortConfig}
                 onEdit={openEditModal}
+                onQuickEditClasificacion={handleQuickEditClasificacion}
             />
 
             {/* Paginación */}
@@ -147,7 +182,7 @@ export const IvaComprasPage: React.FC = () => {
                 itemsPerPage={ITEMS_PER_PAGE}
                 onPageChange={setCurrentPage}
             />
-            
+
             <EditPurchaseModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

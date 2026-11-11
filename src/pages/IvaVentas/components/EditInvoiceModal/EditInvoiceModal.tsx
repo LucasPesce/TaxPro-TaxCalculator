@@ -113,8 +113,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, onCl
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Editar Factura: ${invoice.numeroFactura}`}
             footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button variant="primary" onClick={handleSubmit}>Guardar Cambios</Button></>}
-        >
-            
+        >          
             <form onSubmit={handleSubmit} className={styles.editForm}>
                 <div className={styles.formGrid}>
                     {/* Fila 1: Cabecera */}

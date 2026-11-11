@@ -2,21 +2,21 @@ export interface Invoice {
   id: number;
   cuitEmpresa: string;
   nombreEmpresa: string;
-  
+
   // Datos AFIP
   fecha: string;
   tipoComprobante: string;
   puntoVenta: string;
   numeroDesde: string;
   numeroHasta: string;
-  numeroFactura: string; 
+  numeroFactura: string;
   codAutorizacion: string;
   tipoDocReceptor: string;
   nroDocReceptor: string;
   denominacionReceptor: string;
   tipoCambio: number;
   moneda: string;
-  
+
   // Importes
   netoGravado0?: number;
   iva25?: number;
@@ -29,7 +29,7 @@ export interface Invoice {
   netoGravado21?: number;
   iva27?: number;
   netoGravado27?: number;
-  
+
   montoGravadoTotal: number;
   netoNoGravado: number;
   operacionesExentas: number;
@@ -84,10 +84,9 @@ export interface PurchaseInvoice {
   otrosTributos: number;
   iva: number;
   total: number;
-  
   clasificacion?: string;
+  estadoClasificacion?: 'Sugerido' | 'Confirmado';
 
-  // Estados locales del Frontend
   controlIva: 'Validado' | 'Observado' | 'Editado';
 }
 
@@ -98,12 +97,12 @@ export interface Usuario {
   apellido: string;
   username: string;
   rol:
-    | "Asistente Contable"
-    | "Supervisor"
-    | "Gerente"
-    | "Administrador"
-    | "Sin Permisos"
-    | string;
+  | "Asistente Contable"
+  | "Supervisor"
+  | "Gerente"
+  | "Administrador"
+  | "Sin Permisos"
+  | string;
   password?: string; // Opcional porque el backend la enmascara
   activo: boolean;
   fechaEliminacion?: string | null;
@@ -131,14 +130,13 @@ export interface Proveedor {
   id: number;
   razonSocial: string;
   cuitProveedor: string;
-  domicilio: string;
-  numero: string;
-  telefono: string;
-  email: string;
-  jurisdiccion: string;
-  condicionIva: string;
-  idActividad: string;
-  idTipoCompra: string;
+  domicilio?: string;
+  numero?: string;
+  telefono?: string;
+  email?: string;
+  jurisdiccion?: string;
+  condicionIva?: string;
+  idActividad?: string;
   activo: boolean;
   fechaEliminacion?: string | null;
 }

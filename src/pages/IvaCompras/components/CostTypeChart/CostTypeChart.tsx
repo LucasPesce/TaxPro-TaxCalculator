@@ -12,29 +12,43 @@ const COLORS = ['#2196F3', '#ff9800', '#d7005d', '#830499', '#eb7600', '#929593'
 export const CostTypeChart: React.FC<CostTypeChartProps> = ({ invoices }) => {
 
     const data = useMemo(() => {
-        const grouped: Record<string, number> = {};
+        // Ahora guardamos un objeto con los tres valores
+        const grouped: Record<string, { neto: number; iva: number; total: number }> = {};
         let grandTotal = 0;
 
         invoices.forEach(inv => {
             const type = inv.tipoComprobante || "Otros";
 
             let typeLabel = type;
-            if (type === '1' || type === 'Factura A') typeLabel = 'Factura A';
-            else if (type === '6' || type === 'Factura B') typeLabel = 'Factura B';
-            else if (type === '11' || type === 'Factura C') typeLabel = 'Factura C';
-            else if (type === '3' || type === 'Nota Crédito A') typeLabel = 'Nota Crédito A';
-            else if (type === '8' || type === 'Nota Crédito B') typeLabel = 'Nota Crédito B';
+            if (type === '1' || type === 'Factura A' || type === '001') typeLabel = 'Factura A';
+            else if (type === '6' || type === 'Factura B' || type === '006') typeLabel = 'Factura B';
+            else if (type === '11' || type === 'Factura C' || type === '011') typeLabel = 'Factura C';
+            else if (type === '3' || type === 'Nota Crédito A' || type === '003') typeLabel = 'Nota Crédito A';
+            else if (type === '8' || type === 'Nota Crédito B' || type === '008') typeLabel = 'Nota Crédito B';
 
-            const monto = inv.montoGravado || 0;
-            grouped[typeLabel] = (grouped[typeLabel] || 0) + monto;
-            grandTotal += monto;
+            const neto = inv.montoGravado || 0;
+            const iva = inv.iva || 0;
+            const total = inv.total || 0;
+
+            if (!grouped[typeLabel]) {
+                grouped[typeLabel] = { neto: 0, iva: 0, total: 0 };
+            }
+
+            grouped[typeLabel].neto += neto;
+            grouped[typeLabel].iva += iva;
+            grouped[typeLabel].total += total;
+
+            // El gran total ahora es la suma de los Totales
+            grandTotal += total;
         });
 
         return Object.entries(grouped)
-            .map(([name, value]) => ({
+            .map(([name, values]) => ({
                 name,
-                value,
-                percentage: grandTotal ? (value / grandTotal * 100) : 0
+                neto: values.neto,
+                iva: values.iva,
+                value: values.total, // Recharts usa 'value' para dibujar la porción de la torta
+                percentage: grandTotal ? (values.total / grandTotal * 100) : 0
             }))
             .filter(item => item.value > 0)
             .sort((a, b) => b.value - a.value);
@@ -71,11 +85,13 @@ export const CostTypeChart: React.FC<CostTypeChartProps> = ({ invoices }) => {
                     <thead>
                         <tr>
                             <th>Comprobante</th>
-                            <th>Monto</th>
+                            <th>Neto</th>
+                            <th>IVA</th>
+                            <th>Total</th>
                             <th>%</th>
                         </tr>
                     </thead>
-                   <tbody>
+                    <tbody>
                         {data.map((item, index) => {
                             const itemColor = COLORS[index % COLORS.length];
                             return (
@@ -83,13 +99,17 @@ export const CostTypeChart: React.FC<CostTypeChartProps> = ({ invoices }) => {
                                     <td className={styles.legendName} style={{ color: itemColor, fontWeight: 'bold' }}>
                                         {item.name}
                                     </td>
+                                    <td>${item.neto.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
+                                    <td>${item.iva.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
                                     <td>${item.value.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
-                                    <td>{item.percentage.toFixed(1)}%</td>
+                                    <td>{item.percentage.toFixed(2)}%</td>
                                 </tr>
                             );
                         })}
                         <tr className={styles.totalRow}>
                             <td>TOTAL</td>
+                            <td>${data.reduce((acc, curr) => acc + curr.neto, 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
+                            <td>${data.reduce((acc, curr) => acc + curr.iva, 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
                             <td>${grandTotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
                             <td>100%</td>
                         </tr>

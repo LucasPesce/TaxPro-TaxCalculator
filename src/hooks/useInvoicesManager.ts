@@ -19,24 +19,27 @@ const parseMoney = (val: string | number): number => {
 // --- MAPEO DE DB A FRONTEND (CORREGIDO Y SIN DUPLICAR) ---
 const mapDbToFrontend = (dbInvoice: any): Invoice => {
   // 1. Calculamos los valores esperados de IVA según sus bases netas imponibles
-  const expectedIva25  = dbInvoice.netoGravado25  * 0.025;
-  const expectedIva5   = dbInvoice.netoGravado5   * 0.05;
+  const expectedIva25 = dbInvoice.netoGravado25 * 0.025;
+  const expectedIva5 = dbInvoice.netoGravado5 * 0.05;
   const expectedIva105 = dbInvoice.netoGravado105 * 0.105;
-  const expectedIva21  = dbInvoice.netoGravado21  * 0.21;
-  const expectedIva27  = dbInvoice.netoGravado27  * 0.27;
+  const expectedIva21 = dbInvoice.netoGravado21 * 0.21;
+  const expectedIva27 = dbInvoice.netoGravado27 * 0.27;
 
   // Tolerancia de centavos para evitar discrepancias por redondeo
   const tolerance = 0.10;
 
   // 2. Comparamos el IVA de cada registro contra el teórico calculado
-  const is25Ok  = Math.abs(dbInvoice.iva25  - expectedIva25)  <= tolerance;
-  const is5Ok   = Math.abs(dbInvoice.iva5   - expectedIva5)   <= tolerance;
+  const is25Ok = Math.abs(dbInvoice.iva25 - expectedIva25) <= tolerance;
+  const is5Ok = Math.abs(dbInvoice.iva5 - expectedIva5) <= tolerance;
   const is105Ok = Math.abs(dbInvoice.iva105 - expectedIva105) <= tolerance;
-  const is21Ok  = Math.abs(dbInvoice.iva21  - expectedIva21)  <= tolerance;
-  const is27Ok  = Math.abs(dbInvoice.iva27  - expectedIva27)  <= tolerance;
+  const is21Ok = Math.abs(dbInvoice.iva21 - expectedIva21) <= tolerance;
+  const is27Ok = Math.abs(dbInvoice.iva27 - expectedIva27) <= tolerance;
+
 
   // 3. El comprobante es correcto solo si todas las alícuotas declaradas son consistentes
-  const ivaStatus = (is25Ok && is5Ok && is105Ok && is21Ok && is27Ok) ? "Validado" : "Observado";
+  const isFacturaB = dbInvoice.tipoComprobante?.includes('B') || dbInvoice.tipoComprobante === '006' || dbInvoice.tipoComprobante === '007' || dbInvoice.tipoComprobante === '008';
+
+  const ivaStatus = isFacturaB ? "Validado" : ((is25Ok && is5Ok && is105Ok && is21Ok && is27Ok) ? "Validado" : "Observado");
 
   return {
     ...dbInvoice,
@@ -84,21 +87,36 @@ export const useInvoicesManager = () => {
   };
 
   //--- FUNCION: IMPORTACION Y PROCESAMIENTO DE ARCHIVO CSV ---
-const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: string, ignoreWarning: boolean = false): Promise<string | null> => {
+  const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: string, ignoreWarning: boolean = false): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        complete: async (results) => {
-          // 🚨 CONTROL: Si el archivo está vacío o no tiene formato
-          if (!results.data || results.data.length === 0) {
-            toast.warning(
-              "El archivo CSV está vacío o no tiene el formato correcto.",
-            );
-            return resolve(null); // Cortamos la ejecución sin error fatal
-          }
+         complete: async (results) => {
+              // 🚨 CONTROL 1: Si el archivo está vacío
+              if (!results.data || results.data.length === 0) {
+                toast.error("El archivo CSV está vacío o corrupto.");
+                return resolve(null); 
+              }
 
-          const parsedInvoices = results.data.map((row: any) => {
+              // Normalizamos las cabeceras solo para validación (sin romper el mapeo original)
+              const headerRow = results.meta.fields 
+                ? results.meta.fields.join('').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+                : '';
+              
+              // 🚨 CONTROL 2: Estructura general de AFIP
+              if (!headerRow.includes('comprobante') || !headerRow.includes('punto')) {
+                toast.error("Error: El archivo no tiene la estructura válida de AFIP Mis Comprobantes.");
+                return resolve(null);
+              }
+
+              // 🚨 CONTROL 3: Validar que sea de VENTAS (Receptor) y no de COMPRAS (Emisor)
+              if (headerRow.includes('emisor') || !headerRow.includes('receptor')) {
+                toast.error("Error crítico: Está intentando subir un archivo de IVA Compras en el módulo de IVA Ventas. Operación cancelada.");
+                return resolve(null); // Esto aborta el proceso y limpia el input
+              }
+
+              const parsedInvoices = results.data.map((row: any) => {
             const ptoVenta = (row["Punto de Venta"] || "0")
               .toString()
               .padStart(4, "0");
@@ -319,14 +337,17 @@ const handleFileImport = async (file: File, cuitEmpresa: string, nombreEmpresa: 
   };
 
   //--- MEMOIZACION: ORDENAMIENTO DE FACTURAS ---
-  const sortedInvoices = useMemo(() => {
+ const sortedInvoices = useMemo(() => {
     const sortableItems = [...invoices];
     sortableItems.sort((a, b) => {
-      const valA = a[sortConfig.key];
-      const valB = b[sortConfig.key];
+      // Usamos as any y ?? "" para asegurar que nunca sean undefined
+      const valA = (a as any)[sortConfig.key] ?? "";
+      const valB = (b as any)[sortConfig.key] ?? "";
+      
       let comparison = 0;
       if (valA > valB) comparison = 1;
       else if (valA < valB) comparison = -1;
+      
       return sortConfig.direction === "descending"
         ? comparison * -1
         : comparison;
