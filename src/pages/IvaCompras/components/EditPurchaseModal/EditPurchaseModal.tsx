@@ -70,15 +70,16 @@ export const EditPurchaseModal: React.FC<EditPurchaseModalProps> = ({
         if (name === 'netoGravado21') newForm.iva21 = parseFloat((numValue * 0.21).toFixed(2));
         if (name === 'netoGravado27') newForm.iva27 = parseFloat((numValue * 0.27).toFixed(2));
 
-        if (name === 'netoGravado0') newForm.netoNoGravado = numValue;
+       
 
         // B. Calcular Neto Gravado Total (montoGravado en DB Compras)
+        const n0 = parseFloat(String(newForm.netoGravado0)) || 0;
         const n25 = parseFloat(String(newForm.netoGravado25)) || 0;
         const n5 = parseFloat(String(newForm.netoGravado5)) || 0;
         const n105 = parseFloat(String(newForm.netoGravado105)) || 0;
         const n21 = parseFloat(String(newForm.netoGravado21)) || 0;
         const n27 = parseFloat(String(newForm.netoGravado27)) || 0;
-        newForm.montoGravado = parseFloat((n25 + n5 + n105 + n21 + n27).toFixed(2));
+        newForm.montoGravado = parseFloat((n0 + n25 + n5 + n105 + n21 + n27).toFixed(2));
 
         // C. Calcular Total IVA
         const i25 = parseFloat(String(newForm.iva25)) || 0;

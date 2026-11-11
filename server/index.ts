@@ -157,7 +157,7 @@ app.post("/api/facturas/lote", async (req, res) => {
 
     if (facturasInsertadas > 0) {
       let detallesAuditoria = `Importación de ${facturasInsertadas} facturas de venta (Cliente: ${cuitActual}) periodo ${periodoMuestra}.`;
-      
+
       if (ignoreWarning) {
         detallesAuditoria += ` [ALERTA DE SEGURIDAD IGNORADA: El nombre del archivo CSV subido no contenía el CUIT del cliente].`;
       }
@@ -289,7 +289,7 @@ app.post("/api/facturas/lote", async (req, res) => {
       }
     }
 
-   if (huecosGenerados > 0) {
+    if (huecosGenerados > 0) {
       await registrarActividad(
         req,
         "AUTO-CREACIÓN",
@@ -419,7 +419,7 @@ app.get("/api/compras", async (req, res) => {
 });
 
 app.post("/api/compras/lote", async (req, res) => {
-  const { invoices, cuitEmpresa, nombreEmpresa, ignoreWarning } = req.body;
+  const { invoices, cuitEmpresa, nombreEmpresa, ignoreWarning } = req.body; 
 
   if (!invoices || !Array.isArray(invoices))
     return res.status(400).json({ error: "Datos inválidos" });
@@ -428,38 +428,62 @@ app.post("/api/compras/lote", async (req, res) => {
     const cuitActual = String(cuitEmpresa);
     let comprasInsertadas = 0;
     let periodoMuestra = "Desconocido";
+    
     if (invoices.length > 0 && invoices[0].fechaImputacion) {
-      const f = invoices[0].fechaImputacion;
-      if (f.includes("-"))
-        periodoMuestra = `${f.split("-")[0]}-${f.split("-")[1]}`;
-      else if (f.includes("/"))
-        periodoMuestra = `${f.split("/")[2]}-${f.split("/")[1]}`;
+        const f = invoices[0].fechaImputacion;
+        if (f.includes('-')) periodoMuestra = `${f.split('-')[0]}-${f.split('-')[1]}`; 
+        else if (f.includes('/')) periodoMuestra = `${f.split('/')[2]}-${f.split('/')[1]}`; 
     }
 
-    // Obtenemos los proveedores registrados para clasificar gastos
-    const proveedoresBD = await prisma.proveedor.findMany();
+    // 1. Extraemos el historial de compras previo de ESTE cliente
+    // SOLUCIÓN: Agregamos estadoClasificacion: true al select
+    const comprasHistoricas = await prisma.facturaCompra.findMany({
+      where: { cuitEmpresa: cuitActual },
+      select: { cuitProveedor: true, clasificacion: true, estadoClasificacion: true },
+      orderBy: { id: 'desc' }
+    });
+
+    // 2. Creamos un mapa mental del sistema para este cliente
+    const memoriaClasificacion = new Map<string, any>();
+    for (const compra of comprasHistoricas) {
+      if (!memoriaClasificacion.has(compra.cuitProveedor) && compra.clasificacion) {
+        memoriaClasificacion.set(compra.cuitProveedor, {
+          clase: compra.clasificacion,
+          estado: compra.estadoClasificacion === "Confirmado" ? "Confirmado" : "Sugerido"
+        });
+      }
+    }
 
     for (const f of invoices) {
       const existe = await prisma.facturaCompra.findFirst({
-        where: { cuitEmpresa: cuitActual, cuitProveedor: f.cuitProveedor, numeroFactura: f.numeroFactura },
+        where: {
+          cuitEmpresa: cuitActual,
+          cuitProveedor: f.cuitProveedor,
+          numeroFactura: f.numeroFactura,
+        },
       });
 
       if (!existe) {
-        // --- CÁLCULO DE CLASIFICACIÓN DE GASTO ---
-        let clasificacionStr = "Mercadería";
-        const provEncontrado = proveedoresBD.find(p => p.cuitProveedor === f.cuitProveedor);
-        
-        if (provEncontrado && provEncontrado.idTipoCompra) {
-            clasificacionStr = `${provEncontrado.idTipoCompra} (Confirmado)`;
-        } else {
-            // Sugerencia por defecto estricta según IVA
-            const tasa = f.montoGravado > 0 ? (f.iva / f.montoGravado) : 0;
-            if (Math.abs(tasa - 0.27) < 0.02) clasificacionStr = "Servicios (Sugerido)";
-            else if (Math.abs(tasa - 0.105) < 0.02) clasificacionStr = "Bienes de Uso (Sugerido)";
-            else if (Math.abs(tasa - 0.21) < 0.02) clasificacionStr = "Mercadería (Sugerido)";
-            else clasificacionStr = "Otros (Sugerido)";
+        // --- CÁLCULO DE CLASIFICACIÓN DE GASTO CON INTELIGENCIA HISTÓRICA ---
+        let clasif = "Mercadería";
+        let estado = "Sugerido";
+
+        // A. Prioridad 1: ¿Este cliente ya le compró a este proveedor antes? (Memoria Histórica)
+        if (memoriaClasificacion.has(f.cuitProveedor)) {
+          const mem = memoriaClasificacion.get(f.cuitProveedor);
+          clasif = mem.clase;
+          estado = mem.estado;
+        }
+        else {
+          // B. Prioridad 2: Deducción matemática ciega
+          const tasa = f.montoGravado > 0 ? (f.iva / f.montoGravado) : 0;
+          if (Math.abs(tasa - 0.27) < 0.02) clasif = "Servicios";
+          else if (Math.abs(tasa - 0.105) < 0.02) clasif = "Bienes de Uso";
+          else if (Math.abs(tasa - 0.21) < 0.02) clasif = "Mercadería";
+          else clasif = "Otros";
         }
 
+        // SOLUCIÓN: El prisma.create está AHORA ADENTRO del bloque if(!existe)
         await prisma.facturaCompra.create({
           data: {
             cuitEmpresa: cuitActual, nombreEmpresa: String(nombreEmpresa),
@@ -470,19 +494,34 @@ app.post("/api/compras/lote", async (req, res) => {
             cuitProveedor: f.cuitProveedor, proveedor: f.proveedor,
             tipoCambio: f.tipoCambio, moneda: f.moneda,
             montoGravado: f.montoGravado, netoNoGravado: f.netoNoGravado, exento: f.exento,
-            iva105: f.iva105 || 0, iva21: f.iva21 || 0, iva27: f.iva27 || 0,
+            
+            netoGravado0: Number(f.netoGravado0) || 0,
+            netoGravado25: Number(f.netoGravado25) || 0,
+            netoGravado5: Number(f.netoGravado5) || 0,
+            netoGravado105: Number(f.netoGravado105) || 0,
+            netoGravado21: Number(f.netoGravado21) || 0,
+            netoGravado27: Number(f.netoGravado27) || 0,
+
+            iva25: Number(f.iva25) || 0,
+            iva5: Number(f.iva5) || 0,
+            iva105: Number(f.iva105) || 0,
+            iva21: Number(f.iva21) || 0,
+            iva27: Number(f.iva27) || 0,
             otrosTributos: f.otrosTributos, iva: f.iva, total: f.total,
-            clasificacion: clasificacionStr, // Guardamos la clasificación
+            
+            clasificacion: clasif,
+            estadoClasificacion: estado,
             provincia: f.provincia || "Córdoba", jurisdiccion: f.jurisdiccion || "Córdoba",
           },
         });
+        
         comprasInsertadas++;
-      }
-    }
+      } // <- Aquí cierra el if(!existe) correctamente
+    } // <- Aquí cierra el loop for de las facturas
 
-if (comprasInsertadas > 0) {
+    if (comprasInsertadas > 0) {
       let detallesAuditoria = `Importación de ${comprasInsertadas} comprobantes de compra (Cliente: ${cuitActual}) periodo ${periodoMuestra}.`;
-      
+
       if (ignoreWarning) {
         detallesAuditoria += ` [ALERTA DE SEGURIDAD IGNORADA: El nombre del archivo CSV subido no contenía el CUIT del cliente].`;
       }
@@ -494,11 +533,13 @@ if (comprasInsertadas > 0) {
       insertadas: comprasInsertadas,
       ignoradas: invoices.length - comprasInsertadas,
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error procesando compras" });
   }
 });
+
 
 // --- RUTA: ELIMINAR PROCESO COMPLETO (CU-025 - EXCLUSIVO GERENTE) ---
 app.delete("/api/facturas/eliminar-periodo", async (req, res) => {
@@ -510,7 +551,7 @@ app.delete("/api/facturas/eliminar-periodo", async (req, res) => {
     let registrosBorrados;
     const esCompra = tipoOperacion === "IVA Compras";
 
-const monthSingle = parseInt(month, 10).toString();
+    const monthSingle = parseInt(month, 10).toString();
 
     if (esCompra) {
       registrosBorrados = await prisma.facturaCompra.deleteMany({
@@ -583,6 +624,17 @@ app.post("/api/compras", async (req, res) => {
         proveedor: f.proveedor,
         tipoCambio: parseFloat(f.tipoCambio) || 1,
         moneda: f.moneda || "PES",
+        netoGravado0: Number(f.netoGravado0) || 0,
+        netoGravado25: Number(f.netoGravado25) || 0,
+        netoGravado5: Number(f.netoGravado5) || 0,
+        netoGravado105: Number(f.netoGravado105) || 0,
+        netoGravado21: Number(f.netoGravado21) || 0,
+        netoGravado27: Number(f.netoGravado27) || 0,
+        iva25: Number(f.iva25) || 0,
+        iva5: Number(f.iva5) || 0,
+        iva105: Number(f.iva105) || 0,
+        iva21: Number(f.iva21) || 0,
+        iva27: Number(f.iva27) || 0,
         montoGravado: parseFloat(f.montoGravado) || 0,
         netoNoGravado: parseFloat(f.netoNoGravado) || 0,
         exento: parseFloat(f.exento) || 0,
@@ -634,6 +686,17 @@ app.put("/api/compras/:id", async (req, res) => {
         proveedor: datos.proveedor,
         tipoCambio: parseFloat(datos.tipoCambio) || 1,
         moneda: datos.moneda || "PES",
+        netoGravado0: Number(datos.netoGravado0) || 0,
+        netoGravado25: Number(datos.netoGravado25) || 0,
+        netoGravado5: Number(datos.netoGravado5) || 0,
+        netoGravado105: Number(datos.netoGravado105) || 0,
+        netoGravado21: Number(datos.netoGravado21) || 0,
+        netoGravado27: Number(datos.netoGravado27) || 0,
+        iva25: Number(datos.iva25) || 0,
+        iva5: Number(datos.iva5) || 0,
+        iva105: Number(datos.iva105) || 0,
+        iva21: Number(datos.iva21) || 0,
+        iva27: Number(datos.iva27) || 0,
         montoGravado: parseFloat(datos.montoGravado) || 0,
         netoNoGravado: parseFloat(datos.netoNoGravado) || 0,
         exento: parseFloat(datos.exento) || 0,
@@ -657,6 +720,40 @@ app.put("/api/compras/:id", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error actualizando compra" });
+  }
+});
+
+// --- RUTA: EDICIÓN RÁPIDA DE CLASIFICACIÓN (Y ALTA PROVEEDOR) ---
+app.patch("/api/compras/:id/clasificacion", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { clasificacion, confirmarProveedor, cuitProveedor, proveedorNombre } = req.body;
+
+  try {
+    const actualizada = await prisma.facturaCompra.update({
+      where: { id },
+      data: {
+        clasificacion,
+        estadoClasificacion: confirmarProveedor ? "Confirmado" : "Sugerido"
+      }
+    });
+
+    if (confirmarProveedor) {
+      const exists = await prisma.proveedor.findUnique({ where: { cuitProveedor } });
+      if (!exists) {
+        await prisma.proveedor.create({
+          data: {
+            cuitProveedor,
+            razonSocial: proveedorNombre,
+          }
+        });
+        await registrarActividad(req, "AUTO-CREACIÓN", "Proveedor", 0, `El sistema dio de alta automáticamente al proveedor ${proveedorNombre} al confirmar su clasificación.`);
+      }
+    }
+
+    res.json(actualizada);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al actualizar la clasificación" });
   }
 });
 

@@ -40,15 +40,42 @@ const mapDbToFrontend = (db: any): PurchaseInvoice => {
   const isSumaCorrecta = Math.abs(tot - sumaConceptos) <= 0.2;
 
   // 2. Control de tasas nominales
-  const rates = [0.21, 0.105, 0.27, 0.05, 0.025, 0.0];
-  const isRateCoherent =
-    g === 0
-      ? iva === 0
-      : rates.some((rate) => {
-          return Math.abs(iva - g * rate) <= 0.2;
-        });
+  // 2. Control individual por alícuota
+  const alicuotas = [
+    { neto: Number(db.netoGravado25) || 0, iva: Number(db.iva25) || 0, tasa: 0.025 },
+    { neto: Number(db.netoGravado5) || 0, iva: Number(db.iva5) || 0, tasa: 0.05 },
+    { neto: Number(db.netoGravado105) || 0, iva: Number(db.iva105) || 0, tasa: 0.105 },
+    { neto: Number(db.netoGravado21) || 0, iva: Number(db.iva21) || 0, tasa: 0.21 },
+    { neto: Number(db.netoGravado27) || 0, iva: Number(db.iva27) || 0, tasa: 0.27 },
+  ];
 
-  const ivaStatus = isSumaCorrecta && isRateCoherent ? "Validado" : "Observado";
+  const redondear = (importe: number) =>
+    Math.round((importe + Number.EPSILON) * 100) / 100;
+
+  const coincide = (a: number, b: number) =>
+    Math.abs(a - b) <= 0.2 + 1e-9;
+
+  const isRateCoherent = alicuotas.every(({ neto, iva, tasa }) =>
+    coincide(iva, redondear(neto * tasa))
+  );
+
+  // 3. Control de totales del desglose
+  const sumaNetos = (Number(db.netoGravado0) || 0) +
+    alicuotas.reduce((suma, item) => suma + item.neto, 0);
+
+  const sumaIva = alicuotas.reduce((suma, item) => suma + item.iva, 0);
+
+  const isNetoCorrecto = coincide(g, sumaNetos);
+  const isIvaCorrecto = coincide(iva, sumaIva);
+
+  // Excepción: Factura B (006) o equivalentes no discriminan IVA, se dan por validadas automáticamente
+  const isFacturaB = db.tipoComprobante?.includes('B') || db.tipoComprobante === '006' || db.tipoComprobante === '007' || db.tipoComprobante === '008';
+  
+  // Guardamos el resultado de toda la excelente matemática que ya tenías
+  const isAllMathCorrect = isSumaCorrecta && isRateCoherent && isNetoCorrecto && isIvaCorrecto;
+
+  // Si es B, pasa directo. Si no, evaluamos la matemática
+  const ivaStatus = isFacturaB ? "Validado" : (isAllMathCorrect ? "Validado" : "Observado");
 
   return {
     ...db,
@@ -116,7 +143,11 @@ export const useIvaComprasManager = () => {
     cuitEmpresa: string,
     nombreEmpresa: string,
     ignoreWarning: boolean = false,
+
+
+
   ): Promise<string | null> => {
+
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
@@ -125,14 +156,21 @@ export const useIvaComprasManager = () => {
         transformHeader: (header) =>
           header
             .trim()
+            .replace(/\s+/g, " ")
             .toLowerCase()
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, ""),
         complete: async (results) => {
+          // 🚨 CONTROL: Si el archivo está vacío
           if (!results.data || results.data.length === 0) {
-            toast.warning(
-              "El archivo CSV está vacío o no tiene el formato correcto.",
-            );
+            toast.error("El archivo CSV está vacío o corrupto.");
+            return resolve(null);
+          }
+
+          // 🚨 CONTROL ESTRUCTURAL: Verificar que sea un CSV de AFIP
+          const headerRow = results.meta.fields ? results.meta.fields.join('').toLowerCase() : '';
+          if (!headerRow.includes('comprobante') || !headerRow.includes('punto')) {
+            toast.error("Error: El archivo no tiene la estructura válida de AFIP Mis Comprobantes.");
             return resolve(null);
           }
 
@@ -177,8 +215,21 @@ export const useIvaComprasManager = () => {
               proveedor: row["denominacion emisor"] || "",
               tipoCambio: parseMoney(row["tipo cambio"]) || 1,
               moneda: row["moneda"] || "PES",
+              netoGravado0: parseMoney(row["imp. neto gravado iva 0%"]),
+              netoGravado25: parseMoney(row["imp. neto gravado iva 2,5%"]),
+              netoGravado5: parseMoney(row["imp. neto gravado iva 5%"]),
+              netoGravado105: parseMoney(row["imp. neto gravado iva 10,5%"]),
+              netoGravado21: parseMoney(row["imp. neto gravado iva 21%"]),
+              netoGravado27: parseMoney(row["imp. neto gravado iva 27%"]),
+              iva25: parseMoney(row["iva 2,5%"]),
+              iva5: parseMoney(row["iva 5%"]),
+              iva105: parseMoney(row["iva 10,5%"]),
+              iva21: parseMoney(row["iva 21%"]),
+              iva27: parseMoney(row["iva 27%"]),
               montoGravado: parseMoney(
-                row["imp. neto gravado"] || row["neto gravado"],
+                row["imp. neto gravado total"] ||
+                row["imp. neto gravado"] ||
+                row["neto gravado"]
               ),
               netoNoGravado: parseMoney(
                 row["imp. neto no gravado"] || row["neto no gravado"],
@@ -340,13 +391,13 @@ export const useIvaComprasManager = () => {
     setSortConfig({ key, direction });
   };
 
-  const sortedInvoices = useMemo(() => {
+const sortedInvoices = useMemo(() => {
     const items = [...invoices];
     items.sort((a, b) => {
-      // Usamos (as any) solo para la lectura dinámica de la propiedad, evitando el error de TS
-      const valA = (a as any)[sortConfig.key];
-      const valB = (b as any)[sortConfig.key];
-
+      // Fallback a "" para evitar el error possibly undefined
+      const valA = (a as any)[sortConfig.key] ?? "";
+      const valB = (b as any)[sortConfig.key] ?? "";
+      
       if (valA < valB) return sortConfig.direction === "ascending" ? -1 : 1;
       if (valA > valB) return sortConfig.direction === "ascending" ? 1 : -1;
       return 0;
@@ -424,6 +475,24 @@ export const useIvaComprasManager = () => {
     }
   };
 
+  const handleQuickEditClasificacion = async (id: number, clasificacion: string, confirmar: boolean, cuitProveedor: string, proveedorNombre: string) => {
+    try {
+      const res = await fetch(`/api/compras/${id}/clasificacion`, {
+        method: "PATCH",
+        headers: getHeaders(),
+        body: JSON.stringify({ clasificacion, confirmarProveedor: confirmar, cuitProveedor, proveedorNombre })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = mapDbToFrontend(data);
+        setInvoices(prev => prev.map(inv => inv.id === id ? mapped : inv));
+        toast.success("Clasificación actualizada.");
+      }
+    } catch (error) {
+      toast.error("Error al actualizar clasificación.");
+    }
+  }
+
   return {
     invoices: paginatedInvoices,
     totalInvoices: invoices.length,
@@ -439,5 +508,6 @@ export const useIvaComprasManager = () => {
     hasErrors,
     handleImpactData,
     handleCreateInvoice,
+    handleQuickEditClasificacion,
   };
 };
